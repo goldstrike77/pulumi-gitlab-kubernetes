@@ -43,7 +43,7 @@ build:
 deploy:
   stage: deploy
   script:
-    - git -c http.sslVerify=false clone https://gitea.home.local/suzhetao/pulumi-ts-module-azure.git
+    - git -c http.sslVerify=false clone https://gitea.home.local/suzhetao/pulumi-ts-module-kubernetes.git
     - pulumi up -yf
   rules:
     - if: $CI_COMMIT_TITLE == "deploy"
@@ -52,7 +52,7 @@ deploy:
 cleanup:
   stage: cleanup
   script:
-    - git -c http.sslVerify=false clone https://gitea.home.local/suzhetao/pulumi-ts-module-azure.git
+    - git -c http.sslVerify=false clone https://gitea.home.local/suzhetao/pulumi-ts-module-kubernetes.git
     - pulumi destroy -yf
   rules:
     - if: $CI_COMMIT_TITLE == "destroy"
