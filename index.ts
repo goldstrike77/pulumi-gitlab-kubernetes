@@ -55,7 +55,7 @@ prefix: k3s-it-prd-infra-shared-01`)
             {
                 metadata: {
                     name: "grafana-dashboards-mysql",
-                    namespace: "visualization",
+                    namespace: "monitoring",
                     annotations: {},
                     labels: {
                         grafana_dashboard: ""
@@ -68,7 +68,7 @@ prefix: k3s-it-prd-infra-shared-01`)
             {
                 metadata: {
                     name: "grafana-dashboards-postgres",
-                    namespace: "visualization",
+                    namespace: "monitoring",
                     annotations: {},
                     labels: {
                         grafana_dashboard: ""
@@ -81,7 +81,7 @@ prefix: k3s-it-prd-infra-shared-01`)
             {
                 metadata: {
                     name: "grafana-dashboards-universal",
-                    namespace: "visualization",
+                    namespace: "monitoring",
                     annotations: {},
                     labels: {
                         grafana_dashboard: ""
@@ -97,7 +97,7 @@ prefix: k3s-it-prd-infra-shared-01`)
             {
                 metadata: {
                     name: "grafana-dashboards-platform",
-                    namespace: "visualization",
+                    namespace: "monitoring",
                     annotations: {},
                     labels: {
                         grafana_dashboard: ""
@@ -111,7 +111,7 @@ prefix: k3s-it-prd-infra-shared-01`)
             {
                 metadata: {
                     name: "grafana-dashboards-operatingsystem",
-                    namespace: "visualization",
+                    namespace: "monitoring",
                     annotations: {},
                     labels: {
                         grafana_dashboard: ""
@@ -127,7 +127,7 @@ prefix: k3s-it-prd-infra-shared-01`)
             {
                 metadata: {
                     name: "grafana-dashboards-others",
-                    namespace: "visualization",
+                    namespace: "monitoring",
                     annotations: {},
                     labels: {
                         grafana_dashboard: ""
