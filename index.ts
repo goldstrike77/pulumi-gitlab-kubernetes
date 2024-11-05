@@ -1297,9 +1297,9 @@ save ""`,
                             token_url: "https://login.microsoftonline.com/e824e20c-c5d7-4a69-adb1-3494404763a5/oauth2/v2.0/token",
                             role_attribute_strict: false
                         },
-                        //server: {
-                        //    root_url: "https://norther.example.com/grafana",
-                        //},
+                        server: {
+                            root_url: "https://grafana.home.local",
+                        },
                         paths: {
                             data: "/var/lib/grafana/",
                             logs: "/var/log/grafana",
