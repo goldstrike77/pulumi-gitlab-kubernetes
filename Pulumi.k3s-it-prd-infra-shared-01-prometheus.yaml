@@ -4,6 +4,10 @@ config:
     secure: v1:3L5t3cjfZIecV4Q2:0NwBLOyA9+rTv+DJMkh4vz5uSwkl
   demo:AWS_SECRET_ACCESS_KEY:
     secure: v1:qbzHpfWvjbTBgBgH:AYXRmHOCwNU3F20SFAtueHNKN8Z6lTQH
+  demo:adminPassword:
+    secure: v1:/LmswnxmV7QXo3Dg:DxOi+xAwvhrWmfzP4pOAhZXEagTIRQHq
+  demo:client_secret:
+    secure: v1:lnigpZEtywBwSVUN:38Qouqa+22V1RrA0lvSXClF8E6B+pOtBhxhg1PjG+1oiK061LUv3RXhvW4NAodL10zP1d9G4YTA=
   demo:consulToken:
     secure: v1:S4o7tM4WI5fd6mXS:/XG5FNrJujMnZ+3ds9XdJy5ZqI4hzylC
   kubernetes:context: kubernetes-admin@k3s-it-prd-infra-shared-01
