@@ -1,0 +1,9 @@
+encryptionsalt: v1:+oixJyEpyww=:v1:CDXGp3y5Ltr+b64P:e1Rj5BlsQlnJT9kY8UW7bcMDUFSq5w==
+config:
+  demo:AWS_ACCESS_KEY_ID:
+    secure: v1:3L5t3cjfZIecV4Q2:0NwBLOyA9+rTv+DJMkh4vz5uSwkl
+  demo:AWS_SECRET_ACCESS_KEY:
+    secure: v1:qbzHpfWvjbTBgBgH:AYXRmHOCwNU3F20SFAtueHNKN8Z6lTQH
+  demo:consulToken:
+    secure: v1:S4o7tM4WI5fd6mXS:/XG5FNrJujMnZ+3ds9XdJy5ZqI4hzylC
+  kubernetes:context: kubernetes-admin@k3s-it-prd-infra-shared-01
