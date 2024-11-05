@@ -7,6 +7,7 @@ variables:
   PULUMI_SKIP_UPDATE_CHECK: true
   PULUMI_HOME: ${CI_PROJECT_DIR}/.pulumi
   AWS_REGION: "us-east-1"
+  KUBECONFIG: $KUBECONFIG_FILE
 
 image:
   name: registry.cn-hangzhou.aliyuncs.com/goldenimage/pulumi:3.35.3
@@ -47,7 +48,7 @@ deploy:
     - pulumi up -yf
   rules:
     - if: $CI_COMMIT_TITLE == "deploy"
-      when: on_success 
+      when: on_success
 
 cleanup:
   stage: cleanup
