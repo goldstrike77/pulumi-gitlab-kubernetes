@@ -1,5 +1,5 @@
 import * as pulumi from "@pulumi/pulumi";
-import * as k8s_module from './pulumi-ts-module-kubernetes';
+import * as k8s from './pulumi-ts-module-kubernetes';
 import * as fs from 'fs';
 
 let config = new pulumi.Config();
@@ -1376,8 +1376,8 @@ save ""`,
     }
 ]
 
-const namespace = new k8s_module.core.v1.Namespace('Namespace', { resources: resources })
-const secret = new k8s_module.core.v1.Secret('Secret', { resources: resources }, { dependsOn: [namespace] });
-const configmap = new k8s_module.core.v1.ConfigMap('ConfigMap', { resources: resources }, { dependsOn: [namespace] });
-const release = new k8s_module.helm.v3.Release('Release', { resources: resources }, { dependsOn: [secret, configmap] });
-const configfile = new k8s_module.yaml.ConfigFile('ConfigFile', { resources: resources }, { dependsOn: [release] });
+const namespace = new k8s.core.v1.Namespace('Namespace', { resources: resources })
+const secret = new k8s.core.v1.Secret('Secret', { resources: resources }, { dependsOn: [namespace] });
+const configmap = new k8s.core.v1.ConfigMap('ConfigMap', { resources: resources }, { dependsOn: [namespace] });
+const release = new k8s.helm.v3.Release('Release', { resources: resources }, { dependsOn: [secret, configmap] });
+const configfile = new k8s.yaml.ConfigFile('ConfigFile', { resources: resources }, { dependsOn: [release] });
