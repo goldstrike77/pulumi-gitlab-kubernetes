@@ -9,5 +9,5 @@ config:
   demo:client_secret:
     secure: v1:lnigpZEtywBwSVUN:38Qouqa+22V1RrA0lvSXClF8E6B+pOtBhxhg1PjG+1oiK061LUv3RXhvW4NAodL10zP1d9G4YTA=
   demo:consulToken:
-    secure: v1:S4o7tM4WI5fd6mXS:/XG5FNrJujMnZ+3ds9XdJy5ZqI4hzylC
+    secure: v1:OgJr+TlcHXjqk4ek:K5QlRwaWAKIDmAobU/mZ8uXG7I8Uh7ZtJbWnQMs7swwsBwJQJuKdoiRhFjq6H1hO2rgfqg==
   kubernetes:context: kubernetes-admin@k3s-it-prd-infra-shared-01

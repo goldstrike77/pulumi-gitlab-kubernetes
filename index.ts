@@ -739,7 +739,7 @@ SOFTWARE.
       token: ${config.require("consulToken")}
       refresh_interval: 60s
       services: ['alerta_exporter', 'graylog_exporter']
-      scheme: http
+      scheme: https
       tls_config:
         insecure_skip_verify: true
   relabel_configs:
@@ -767,7 +767,7 @@ SOFTWARE.
       token: ${config.require("consulToken")}
       refresh_interval: 60s
       services: ['blackbox_exporter_prober', 'smokeping_prober_prober', 'snmp_exporter_prober']
-      scheme: http
+      scheme: https
       tls_config:
         insecure_skip_verify: true
   relabel_configs:
