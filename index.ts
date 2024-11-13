@@ -143,7 +143,7 @@ prefix: k3s-it-prd-infra-shared-01`)
                 namespace: "monitoring",
                 name: "kube-prometheus-stack",
                 chart: "oci://harbor.home.local/helm-charts/kube-prometheus-stack",
-                version: "60.4.0",
+                version: "66.1.1",
                 values: {
                     fullnameOverride: "kubepromstack",
                     defaultRules: { create: true },
@@ -508,7 +508,7 @@ SOFTWARE.
                         image: {
                             registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "gcr-io/kube-state-metrics",
-                            tag: "v2.12.0"
+                            tag: "v2.14.0"
                         },
                         customLabels: podlabels,
                         metricLabelsAllowlist: ["nodes=[*]"],
@@ -537,7 +537,7 @@ SOFTWARE.
                         image: {
                             registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "quay-io/node-exporter",
-                            tag: "v1.8.1"
+                            tag: "v1.8.2"
                         },
                         resources: {
                             limits: { cpu: "50m", memory: "32Mi" },
@@ -578,7 +578,7 @@ SOFTWARE.
                             image: {
                                 registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/admission-webhook",
-                                tag: "v0.74.0"
+                                tag: "v0.78.1"
                             },
                             patch: {
                                 enabled: true,
@@ -609,13 +609,13 @@ SOFTWARE.
                         image: {
                             registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "quay-io/prometheus-operator",
-                            tag: "v0.74.0"
+                            tag: "v0.78.1"
                         },
                         prometheusConfigReloader: {
                             image: {
                                 registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/prometheus-config-reloader",
-                                tag: "v0.74.0"
+                                tag: "v0.78.1"
                             },
                             resources: {
                                 limits: { cpu: "200m", memory: "64Mi" },
@@ -625,7 +625,7 @@ SOFTWARE.
                         thanosImage: {
                             registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "quay-io/thanos",
-                            tag: "v0.35.1"
+                            tag: "v0.36.1"
                         }
                     },
                     prometheus: {
@@ -669,7 +669,7 @@ SOFTWARE.
                             image: {
                                 registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/prometheus",
-                                tag: "v2.53.0"
+                                tag: "v2.55.1"
                             },
                             externalLabels: { cluster: "k3s-it-prd-infra-shared-01" },
                             externalUrl: "https://prometheus.home.local",
@@ -814,13 +814,13 @@ SOFTWARE.
                 namespace: "monitoring",
                 name: "thanos",
                 chart: "oci://harbor.home.local/helm-charts/thanos",
-                version: "15.7.10",
+                version: "15.8.1",
                 values: {
                     image:
                     {
                         registry: "swr.cn-east-3.myhuaweicloud.com",
                         repository: "docker-io/thanos",
-                        tag: "0.35.1-debian-12-r1"
+                        tag: "0.36.1-debian-12-r5"
                     },
                     existingObjstoreSecret: "configuration-secret",
                     query: {
