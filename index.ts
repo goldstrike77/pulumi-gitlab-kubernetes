@@ -702,11 +702,11 @@ SOFTWARE.
   tls_config:
     insecure_skip_verify: true
   consul_sd_configs:
-    - server: 'consul-headless.consul.svc.cluster.local:8500'
+    - server: '192.168.0.1:8501'
       token: ${config.require("consulToken")}
       refresh_interval: 60s
       services: ['alertmanager_exporter', 'azure-metrics_exporter', 'auditbeat_exporter', 'blackbox_exporter', 'consul_exporter', 'dellhw_exporter', 'docker_exporter', 'elasticsearch_exporter', 'filebeat_exporter', 'gitlab_exporter', 'grafana_exporter', 'haproxy_exporter', 'ingress-nginx_exporter', 'jenkins_exporter', 'jmx_exporter', 'kafka_exporter', 'keepalived_exporter', 'kibana_exporter', 'kube-state-metrics_exporter', 'logstash_exporter', 'minio_exporter', 'mongodb_exporter', 'mysqld_exporter', 'netdata_exporter', 'nginx_exporter', 'node_exporter', 'openldap_exporter', 'ossec_exporter', 'packetbeat_exporter', 'php-fpm_exporter', 'postgres_exporter', 'pushgateway_exporter', 'prometheus_exporter', 'rabbitmq_exporter', 'redis-sentinel_exporter', 'redis-server_exporter', 'skywalking_exporter', 'smokeping_exporter', 'snmp_exporter', 'statsd_exporter', 'thanos-bucket_exporter', 'thanos-compact_exporter', 'thanos-query_exporter', 'thanos-query-frontend_exporter', 'thanos-sidecar_exporter', 'thanos-store_exporter', 'vault_exporter', 'vmware_exporter', 'wmi_exporter', 'zookeeper_exporter']
-      scheme: http
+      scheme: https
       tls_config:
         insecure_skip_verify: true
   relabel_configs:
@@ -735,7 +735,7 @@ SOFTWARE.
   tls_config:
     insecure_skip_verify: true
   consul_sd_configs:
-    - server: 'consul-headless.consul.svc.cluster.local:8500'
+    - server: '192.168.0.1:8501'
       token: ${config.require("consulToken")}
       refresh_interval: 60s
       services: ['alerta_exporter', 'graylog_exporter']
@@ -763,7 +763,7 @@ SOFTWARE.
       regex: (.+)
 - job_name: 'Probers'
   consul_sd_configs:
-    - server: 'consul-headless.consul.svc.cluster.local:8500'
+    - server: '192.168.0.1:8501'
       token: ${config.require("consulToken")}
       refresh_interval: 60s
       services: ['blackbox_exporter_prober', 'smokeping_prober_prober', 'snmp_exporter_prober']
