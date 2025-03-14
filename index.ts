@@ -143,7 +143,7 @@ prefix: k3s-it-prd-infra-shared-01`)
                 namespace: "monitoring",
                 name: "kube-prometheus-stack",
                 chart: "oci://harbor.home.local/helm-charts/kube-prometheus-stack",
-                version: "66.1.1",
+                version: "69.8.2",
                 values: {
                     fullnameOverride: "kubepromstack",
                     defaultRules: { create: true },
@@ -396,7 +396,7 @@ SOFTWARE.
                             image: {
                                 registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/alertmanager",
-                                tag: "v0.27.0"
+                                tag: "v0.28.1"
                             },
                             logLevel: "warn",
                             replicas: 1,
@@ -508,7 +508,7 @@ SOFTWARE.
                         image: {
                             registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "gcr-io/kube-state-metrics",
-                            tag: "v2.14.0"
+                            tag: "v2.15.0"
                         },
                         customLabels: podlabels,
                         metricLabelsAllowlist: ["nodes=[*]"],
@@ -537,7 +537,7 @@ SOFTWARE.
                         image: {
                             registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "quay-io/node-exporter",
-                            tag: "v1.8.2"
+                            tag: "v1.9.0"
                         },
                         resources: {
                             limits: { cpu: "50m", memory: "32Mi" },
@@ -578,14 +578,14 @@ SOFTWARE.
                             image: {
                                 registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/admission-webhook",
-                                tag: "v0.78.1"
+                                tag: "v0.80.1"
                             },
                             patch: {
                                 enabled: true,
                                 image: {
                                     registry: "swr.cn-east-3.myhuaweicloud.com",
                                     repository: "gcr-io/kube-webhook-certgen",
-                                    tag: "v20221220-controller-v1.5.1-58-g787ea74b6"
+                                    tag: "v1.5.1"
                                 }
                             }
                         },
@@ -609,13 +609,13 @@ SOFTWARE.
                         image: {
                             registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "quay-io/prometheus-operator",
-                            tag: "v0.78.1"
+                            tag: "v0.80.1"
                         },
                         prometheusConfigReloader: {
                             image: {
                                 registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/prometheus-config-reloader",
-                                tag: "v0.78.1"
+                                tag: "v0.80.1"
                             },
                             resources: {
                                 limits: { cpu: "200m", memory: "64Mi" },
@@ -625,7 +625,7 @@ SOFTWARE.
                         thanosImage: {
                             registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "quay-io/thanos",
-                            tag: "v0.36.1"
+                            tag: "v0.37.2"
                         }
                     },
                     prometheus: {
@@ -669,7 +669,7 @@ SOFTWARE.
                             image: {
                                 registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/prometheus",
-                                tag: "v2.55.1"
+                                tag: "v3.2.1"
                             },
                             externalLabels: { cluster: "k3s-it-prd-infra-shared-01" },
                             externalUrl: "https://prometheus.home.local",
@@ -814,13 +814,13 @@ SOFTWARE.
                 namespace: "monitoring",
                 name: "thanos",
                 chart: "oci://harbor.home.local/helm-charts/thanos",
-                version: "15.8.1",
+                version: "15.13.2",
                 values: {
                     image:
                     {
                         registry: "swr.cn-east-3.myhuaweicloud.com",
                         repository: "docker-io/thanos",
-                        tag: "0.36.1-debian-12-r5"
+                        tag: "0.37.2-debian-12-r8"
                     },
                     existingObjstoreSecret: "configuration-secret",
                     query: {
@@ -1002,13 +1002,13 @@ config:
                 namespace: "monitoring",
                 name: "prometheus-blackbox-exporter",
                 chart: "oci://harbor.home.local/helm-charts/prometheus-blackbox-exporter",
-                version: "8.17.0",
+                version: "9.3.0",
                 values: {
                     fullnameOverride: "blackbox-exporter",
                     image: {
                         registry: "swr.cn-east-3.myhuaweicloud.com",
                         repository: "quay-io/blackbox-exporter",
-                        tag: "v0.25.0"
+                        tag: "v0.26.0"
                     },
                     config: {
                         modules: {
@@ -1092,13 +1092,13 @@ config:
                 namespace: "monitoring",
                 name: "redis",
                 chart: "oci://harbor.home.local/helm-charts/redis",
-                version: "19.6.0",
+                version: "20.11.3",
                 values: {
                     architecture: "standalone",
                     image: {
                         registry: "swr.cn-east-3.myhuaweicloud.com",
                         repository: "docker-io/redis",
-                        tag: "7.2.5-debian-12-r0"
+                        tag: "7.4.2-debian-12-r4"
                     },
                     auth: { enabled: false, sentinel: false },
                     commonConfiguration: `appendonly no
@@ -1122,7 +1122,7 @@ save ""`,
                         image: {
                             registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "docker-io/redis-exporter",
-                            tag: "1.61.0-debian-12-r0"
+                            tag: "1.67.0-debian-12-r9"
                         },
                         resources: {
                             limits: { cpu: "100m", memory: "64Mi" },
@@ -1148,7 +1148,7 @@ save ""`,
                         image: {
                             registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "docker-io/os-shell",
-                            tag: "12-debian-12-r22"
+                            tag: "12-debian-12-r38"
                         },
                         resources: {
                             limits: { cpu: "100m", memory: "64Mi" },
