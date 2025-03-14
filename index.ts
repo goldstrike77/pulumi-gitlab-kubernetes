@@ -1094,6 +1094,11 @@ config:
                 chart: "oci://harbor.home.local/helm-charts/redis",
                 version: "20.11.3",
                 values: {
+                    global: {
+                        security: {
+                            allowInsecureImages: true
+                        }
+                    },
                     architecture: "standalone",
                     image: {
                         registry: "swr.cn-east-3.myhuaweicloud.com",
