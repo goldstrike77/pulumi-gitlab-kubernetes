@@ -816,6 +816,11 @@ SOFTWARE.
                 chart: "oci://harbor.home.local/helm-charts/thanos",
                 version: "15.13.2",
                 values: {
+                    global: {
+                        security: {
+                            allowInsecureImages: true
+                        }
+                    },
                     image:
                     {
                         registry: "swr.cn-east-3.myhuaweicloud.com",
