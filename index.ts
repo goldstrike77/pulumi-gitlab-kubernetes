@@ -919,8 +919,7 @@ config:
                         retentionResolution5m: "30d",
                         retentionResolution1h: "30d",
                         extraFlags: [
-                            "--compact.cleanup-interval=6h",
-                            "--compact.concurrency=2"
+                            "--compact.cleanup-interval=6h"
                         ],
                         resources: {
                             limits: { cpu: "500m", memory: "2048Mi" },
