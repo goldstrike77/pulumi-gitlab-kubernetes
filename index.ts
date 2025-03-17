@@ -1093,55 +1093,187 @@ config:
                 }
             },
             {
-                namespace: "monitoring",
-                name: "redis",
-                chart: "oci://harbor.home.local/helm-charts/redis",
-                version: "20.11.3",
+                namespace: "logging",
+                name: "loki",
+                chart: "loki",
+                repositoryOpts: {
+                    repo: "https://grafana.github.io/helm-charts"
+                },
+                version: "6.28.0",
                 values: {
                     global: {
-                        security: {
-                            allowInsecureImages: true
+                        image: {
+                            registry: "swr.cn-east-3.myhuaweicloud.com"
                         }
                     },
-                    architecture: "standalone",
-                    image: {
-                        registry: "swr.cn-east-3.myhuaweicloud.com",
-                        repository: "docker-io/redis",
-                        tag: "7.4.2-debian-12-r4"
-                    },
-                    auth: { enabled: false, sentinel: false },
-                    commonConfiguration: `appendonly no
-maxmemory 512mb
-tcp-keepalive 60
-tcp-backlog 8192
-maxclients 1000
-bind 0.0.0.0
-databases 4
-save ""`,
-                    master: {
-                        resources: {
-                            limits: { cpu: "300m", memory: "576Mi" },
-                            requests: { cpu: "300m", memory: "576Mi" }
-                        },
+                    deploymentMode: "Distributed",
+                    loki: {
+                        image: { repository: "docker-io/loki" },
                         podLabels: podlabels,
-                        persistence: { enabled: false }
+                        auth_enabled: false,
+                        tenants: [],
+                        limits_config: {
+                            ingestion_burst_size_mb: 64,
+                            ingestion_rate_mb: 32,
+                            ingestion_rate_strategy: "global",
+                            max_cache_freshness_per_query: "10m",
+                            max_entries_limit_per_query: 10000,
+                            max_global_streams_per_user: 100000,
+                            max_line_size: "64kb",
+                            max_line_size_truncate: true,
+                            query_timeout: "300s",
+                            reject_old_samples: true,
+                            reject_old_samples_max_age: "120h",
+                            retention_period: "120h",
+                            split_queries_by_interval: "15m",
+                            volume_enabled: true
+                        },
+                        storage: {
+                            bucketNames: {
+                                chunks: "loki",
+                                ruler: "loki",
+                                admin: "loki"
+                            },
+                            type: "s3",
+                            s3: {
+                                endpoint: "obs.home.local",
+                                region: "us-east-1",
+                                secretAccessKey: config.require("AWS_SECRET_ACCESS_KEY"),
+                                accessKeyId: config.require("AWS_ACCESS_KEY_ID"),
+                                s3ForcePathStyle: true,
+                                insecure: false,
+                                http_config: {
+                                    idle_conn_timeout: "2m",
+                                    insecure_skip_verify: true,
+                                    response_header_timeout: "5m"
+                                }
+                            }
+                        },
+                        schemaConfig: {
+                            configs: [
+                                {
+                                    from: "2024-04-01",
+                                    store: "tsdb",
+                                    object_store: "s3",
+                                    schema: "v13",
+                                    index: {
+                                        prefix: "loki_index_",
+                                        period: "24h"
+                                    }
+                                }
+                            ]
+                        },
+                        analytics: { reporting_enabled: false },
+                        ingester: { "chunk_encoding": "snappy" },
+                        tracing: { "enabled": false },
+                        querier: { "max_concurrent": 4 }
                     },
-                    metrics: {
-                        enabled: true,
-                        image: {
-                            registry: "swr.cn-east-3.myhuaweicloud.com",
-                            repository: "docker-io/redis-exporter",
-                            tag: "1.67.0-debian-12-r9"
-                        },
-                        resources: {
-                            limits: { cpu: "100m", memory: "64Mi" },
-                            requests: { cpu: "100m", memory: "64Mi" }
-                        },
+                    gateway: { "enabled": false },
+                    ingester: {
+                        replicas: 3,
                         podLabels: podlabels,
-                        serviceMonitor: {
+                        resources: {},
+                        persistence: {
                             enabled: true,
-                            interval: "60s",
-                            relabellings: [
+                            claims: [
+                                {
+                                    name: "data",
+                                    size: "7Gi",
+                                    storageClass: "local-path"
+                                }
+                            ]
+                        }
+                    },
+                    distributor: {
+                        replicas: 3,
+                        maxUnavailable: 1,
+                        podLabels: podlabels,
+                        resources: {}
+                    },
+                    querier: {
+                        replicas: 1,
+                        podLabels: podlabels,
+                        resources: {}
+                    },
+                    queryFrontend: {
+                        replicas: 1,
+                        podLabels: podlabels,
+                        resources: {}
+                    },
+                    queryScheduler: {
+                        replicas: 1,
+                        podLabels: podlabels,
+                        resources: {}
+                    },
+                    indexGateway: {
+                        replicas: 1,
+                        podLabels: podlabels,
+                        resources: {}
+                    },
+                    compactor: {
+                        replicas: 1,
+                        podLabels: podlabels,
+                        resources: {},
+                        persistence: {
+                            enabled: true,
+                            size: "7Gi",
+                            storageClass: "local-path"
+                        }
+                    },
+                    ruler: {
+                        enabled: false,
+                        replicas: 0,
+                        podLabels: podlabels,
+                        resources: {},
+                        directories: {}
+                    },
+                    memcached: {
+                        image: { repository: "docker-io/memcached" }
+                    },
+                    memcachedExporter: {
+                        image: { repository: "docker-io/memcached-exporter" },
+                        resources: {
+                            limits: { cpu: "200m", memory: "64Mi" },
+                            requests: { cpu: "200m", memory: "64Mi" }
+                        }
+                    },
+                    resultsCache: {
+                        enabled: true,
+                        defaultValidity: "12h",
+                        replicas: 1,
+                        allocatedMemory: 1024,
+                        maxItemMemory: 5,
+                        connectionLimit: 16384,
+                        writebackSizeLimit: "500MB",
+                        writebackBuffer: 500000,
+                        writebackParallelism: 1,
+                        podLabels: podlabels
+                    },
+                    chunksCache: {
+                        enabled: true,
+                        batchSize: 4,
+                        parallelism: 5,
+                        timeout: "2000ms",
+                        defaultValidity: "0s",
+                        replicas: 1,
+                        allocatedMemory: 8192,
+                        maxItemMemory: 5,
+                        connectionLimit: 16384,
+                        writebackSizeLimit: "500MB",
+                        writebackBuffer: 500000,
+                        writebackParallelism: 1,
+                        initContainers: [],
+                        podLabels: podlabels
+                    },
+                    "sidecar": {
+                        image: { repository: "quay-io/k8s-sidecar" },
+                        resources: {}
+                    },
+                    "monitoring": {
+                        "serviceMonitor": {
+                            "enabled": true,
+                            "interval": "15s",
+                            "relabelings": [
                                 { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
                                 { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
                                 { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
@@ -1149,23 +1281,20 @@ save ""`,
                                 { sourceLabels: ["__meta_kubernetes_pod_label_group"], targetLabel: "group" },
                                 { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
                                 { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
-                            ]
+                            ],
+                            "metricsInstance": {
+                                "enabled": false
+                            }
                         }
                     },
-                    sysctl: {
-                        enabled: true,
-                        image: {
-                            registry: "swr.cn-east-3.myhuaweicloud.com",
-                            repository: "docker-io/os-shell",
-                            tag: "12-debian-12-r38"
-                        },
-                        resources: {
-                            limits: { cpu: "100m", memory: "64Mi" },
-                            requests: { cpu: "100m", memory: "64Mi" }
-                        }
-                    }
+                    test: { enabled: false },
+                    lokiCanary: { enabled: false },
+                    backend: { "replicas": 0 },
+                    read: { "replicas": 0 },
+                    write: { "replicas": 0 },
+                    singleBinary: { "replicas": 0 }
                 }
-            },
+            }
             {
                 namespace: "monitoring",
                 name: "grafana",
