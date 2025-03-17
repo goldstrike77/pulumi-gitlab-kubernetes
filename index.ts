@@ -935,7 +935,7 @@ SOFTWARE.
                         replicas: 3,
                         maxUnavailable: 1,
                         podLabels: podlabels,
-                        resources: {}
+                        resources: {},
                     },
                     querier: {
                         replicas: 1,
