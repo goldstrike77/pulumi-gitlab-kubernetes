@@ -25,32 +25,6 @@ const resources = [
                 spec: {}
             }
         ],
-        secret: [
-            {
-                metadata: {
-                    name: "configuration-secret",
-                    namespace: "monitoring",
-                    annotations: {},
-                    labels: {}
-                },
-                type: "Opaque",
-                data: {
-                    "objstore.yml": btoa(`type: s3
-config:
-  bucket: thanos
-  endpoint: obs.home.local
-  access_key: ${config.require("AWS_ACCESS_KEY_ID")}
-  secret_key: ${config.require("AWS_SECRET_ACCESS_KEY")}
-  insecure: false
-  http_config:
-    idle_conn_timeout: 2m
-    response_header_timeout: 5m
-    insecure_skip_verify: true
-prefix: k3s-it-prd-infra-shared-01`)
-                },
-                stringData: {}
-            }
-        ],
         configmap: [
             {
                 metadata: {
@@ -621,30 +595,10 @@ SOFTWARE.
                                 limits: { cpu: "200m", memory: "64Mi" },
                                 requests: { cpu: "200m", memory: "64Mi" }
                             }
-                        },
-                        thanosImage: {
-                            registry: "swr.cn-east-3.myhuaweicloud.com",
-                            repository: "quay-io/thanos",
-                            tag: "v0.37.2"
                         }
                     },
                     prometheus: {
                         enabled: true,
-                        thanosService: {
-                            enabled: true,
-                        },
-                        thanosServiceMonitor: {
-                            enabled: true,
-                            relabelings: [
-                                { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
-                                { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
-                                { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
-                                { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
-                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "k3s-it-prd-infra-shared-01" },
-                                { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
-                                { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
-                            ]
-                        },
                         ingress: {
                             enabled: true,
                             ingressClassName: "traefik",
@@ -793,213 +747,9 @@ SOFTWARE.
                                     regex: "prometheus|cluster",
                                     action: "labeldrop"
                                 }
-                            ],
-                            thanos: {
-                                resources: {
-                                    limits: { cpu: "200m", memory: "256Mi" },
-                                    requests: { cpu: "200m", memory: "256Mi" }
-                                },
-                                objectStorageConfig: {
-                                    existingSecret: {
-                                        name: "configuration-secret",
-                                        key: "objstore.yml"
-                                    }
-                                }
-                            }
-                        },
-                    }
-                }
-            },
-            {
-                namespace: "monitoring",
-                name: "thanos",
-                chart: "oci://harbor.home.local/helm-charts/thanos",
-                version: "15.13.2",
-                values: {
-                    global: {
-                        security: {
-                            allowInsecureImages: true
-                        }
-                    },
-                    image:
-                    {
-                        registry: "swr.cn-east-3.myhuaweicloud.com",
-                        repository: "docker-io/thanos",
-                        tag: "0.37.2-debian-12-r8"
-                    },
-                    existingObjstoreSecret: "configuration-secret",
-                    query: {
-                        enabled: true,
-                        logLevel: "warn",
-                        replicaLabel: ["prometheus_replica", "cluster"],
-                        dnsDiscovery: {
-                            enabled: true,
-                            sidecarsService: "kubepromstack-thanos-discovery",
-                            sidecarsNamespace: "monitoring"
-                        },
-                        stores: [
-                            // ocp-sales-prd-shared-2c-01
-                            "192.168.0.112:10901",
-                            "192.168.0.112:10903",
-                            // okd-sales-prd-shared-2b-01
-                            "192.168.0.180:10901",
-                            "192.168.0.180:10903"
-                        ],
-                        extraFlags: ["--query.partial-response", "--query.auto-downsampling"],
-                        replicaCount: 1,
-                        resources: {
-                            limits: { cpu: "200m", memory: "128Mi" },
-                            requests: { cpu: "200m", memory: "128Mi" }
-                        },
-                        podLabels: podlabels,
-                        ingress: { enabled: false }
-                    },
-                    queryFrontend: {
-                        enabled: true,
-                        logLevel: "warn",
-                        args: [
-                            "query-frontend",
-                            "--log.level=warn",
-                            "--log.format=logfmt",
-                            "--http-address=0.0.0.0:9090",
-                            "--query-frontend.downstream-url=http://thanos-query:9090",
-                            "--labels.split-interval=1h",
-                            "--labels.max-retries-per-request=10",
-                            "--query-range.split-interval=1h",
-                            "--query-range.max-retries-per-request=10",
-                            "--query-range.max-query-parallelism=32",
-                            "--query-range.partial-response", `--query-range.response-cache-config=
-type: REDIS
-config:
-  addr: "redis-master:6379"
-  db: 3
-  dial_timeout: 10s
-  read_timeout: 10s
-  write_timeout: 10s
-  max_get_multi_concurrency: 200
-  get_multi_batch_size: 1000
-  max_set_multi_concurrency: 200
-  set_multi_batch_size: 1000
-  cache_size: 64MiB
-  expiration: 24h0m0s
-`, `--labels.response-cache-config=
-type: REDIS
-config:
-  addr: "redis-master:6379"
-  db: 2
-  dial_timeout: 10s
-  read_timeout: 10s
-  write_timeout: 10s
-  max_get_multi_concurrency: 200
-  get_multi_batch_size: 1000
-  max_set_multi_concurrency: 200
-  set_multi_batch_size: 1000
-  cache_size: 64MiB
-  expiration: 24h0m0s
-`
-                        ],
-                        replicaCount: 1,
-                        resources: {
-                            limits: { cpu: "200m", memory: "128Mi" },
-                            requests: { cpu: "200m", memory: "128Mi" }
-                        },
-                        ingress: {
-                            enabled: true,
-                            ingressClassName: "traefik",
-                            hostname: "thanos.home.local"
-                        },
-                        podLabels: podlabels
-                    },
-                    bucketweb: { enabled: false },
-                    compactor: {
-                        enabled: true,
-                        logLevel: "warn",
-                        // 5m resolution retention must be higher than the minimum block size after which 1h resolution downsampling will occur (10 days).
-                        retentionResolutionRaw: "10d",
-                        retentionResolution5m: "30d",
-                        retentionResolution1h: "30d",
-                        extraFlags: [
-                            "--compact.cleanup-interval=6h"
-                        ],
-                        resources: {
-                            limits: { cpu: "500m", memory: "2048Mi" },
-                            requests: { cpu: "500m", memory: "2048Mi" }
-                        },
-                        podLabels: podlabels,
-                        persistence: {
-                            enabled: true,
-                            storageClass: "local-path",
-                            size: "31Gi"
-                        }
-                    },
-                    storegateway: {
-                        enabled: true,
-                        logLevel: "warn",
-                        extraFlags: [
-                            "--store.grpc.series-max-concurrency=32",
-                            "--block-sync-concurrency=32",
-                            "--store.grpc.series-sample-limit=50000", `--index-cache.config=
-type: REDIS
-config:
-  addr: "redis-master:6379"
-  db: 1
-  dial_timeout: 10s
-  read_timeout: 10s
-  write_timeout: 10s
-  max_get_multi_concurrency: 200
-  get_multi_batch_size: 1000
-  max_set_multi_concurrency: 200
-  set_multi_batch_size: 1000
-  cache_size: 128MiB
-  expiration: 24h0m0s
-`, `--store.caching-bucket.config=
-type: REDIS
-config:
-  addr: "redis-master:6379"
-  db: 0
-  dial_timeout: 10s
-  read_timeout: 10s
-  write_timeout: 10s
-  max_get_multi_concurrency: 200
-  get_multi_batch_size: 1000
-  max_set_multi_concurrency: 200
-  set_multi_batch_size: 1000
-  cache_size: 64MiB
-  expiration: 24h0m0s
-`
-                        ],
-                        replicaCount: 1,
-                        resources: {
-                            limits: { cpu: "500m", memory: "1024Mi" },
-                            requests: { cpu: "500m", memory: "1024Mi" }
-                        },
-                        podLabels: podlabels,
-                        persistence: {
-                            enabled: true,
-                            storageClass: "local-path",
-                            size: "7Gi"
-                        }
-                    },
-                    metrics: {
-                        enabled: true,
-                        serviceMonitor: {
-                            enabled: true,
-                            relabelings: [
-                                { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
-                                { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
-                                { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
-                                { sourceLabels: ["__meta_kubernetes_pod_label_project"], targetLabel: "project" },
-                                { sourceLabels: ["__meta_kubernetes_pod_label_group"], targetLabel: "group" },
-                                { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
-                                { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
                             ]
-                        },
-                        prometheusRule: {
-                            enabled: false,
-                            groups: []
                         }
-                    },
-                    volumePermissions: { enabled: false }
+                    }
                 }
             },
             {
@@ -1093,12 +843,9 @@ config:
                 }
             },
             {
-                namespace: "logging",
+                namespace: "monitoring",
                 name: "loki",
-                chart: "loki",
-                repositoryOpts: {
-                    repo: "https://grafana.github.io/helm-charts"
-                },
+                chart: "oci://harbor.home.local/helm-charts/loki",
                 version: "6.28.0",
                 values: {
                     global: {
@@ -1228,10 +975,10 @@ config:
                         directories: {}
                     },
                     memcached: {
-                        image: { repository: "docker-io/memcached" }
+                        image: { repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/memcached" }
                     },
                     memcachedExporter: {
-                        image: { repository: "docker-io/memcached-exporter" },
+                        image: { repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/memcached-exporter" },
                         resources: {
                             limits: { cpu: "200m", memory: "64Mi" },
                             requests: { cpu: "200m", memory: "64Mi" }
@@ -1294,7 +1041,7 @@ config:
                     write: { "replicas": 0 },
                     singleBinary: { "replicas": 0 }
                 }
-            }
+            },
             {
                 namespace: "monitoring",
                 name: "grafana",
@@ -1375,7 +1122,7 @@ config:
                                     name: "DS_LOKI",
                                     type: "loki",
                                     access: "proxy",
-                                    url: "http://loki-query-frontend.logging:3100",
+                                    url: "http://loki-query-frontend:3100",
                                     version: 1,
                                     jsonData: {
                                         maxLines: 5000
@@ -1385,40 +1132,6 @@ config:
                                         matcherRegex: "(?:traceID|trace_id)=(\\w+)",
                                         name: "TraceID",
                                         url: "${__value.raw}"
-                                    }
-                                },
-                                {
-                                    name: "DS_PROMETHEUS",
-                                    type: "prometheus",
-                                    access: "proxy",
-                                    url: "http://thanos-query-frontend.monitoring:9090",
-                                    version: 1
-                                },
-                                {
-                                    name: "DS_SKYWALKING_PromQL",
-                                    type: "prometheus",
-                                    url: "http://skywalking-oap.skywalking:9090",
-                                    version: 1
-                                },
-                                {
-                                    name: "DS_SKYWALKING_GraphQL",
-                                    type: "apache-skywalking-datasource",
-                                    jsonData: {
-                                        URL: "http://skywalking-oap.skywalking:12800/graphql"
-                                    },
-                                    version: 1
-                                },
-                                {
-                                    name: "DS_ALERTMANAGER",
-                                    type: "camptocamp-prometheus-alertmanager-datasource",
-                                    access: "proxy",
-                                    url: "http://kube-prometheus-stack-alertmanager.monitoring:9093",
-                                    version: 1,
-                                    jsonData: {
-                                        severity_critical: "p1",
-                                        severity_high: "p2",
-                                        severity_warning: "p3",
-                                        severity_info: "p4"
                                     }
                                 }
                             ]
@@ -1477,40 +1190,7 @@ config:
                     }
                 }
             }
-        ],
-        /**
-        configfile: [
-            { file: "../_rules/priority/kube-prometheus-stack-alertmanager" },
-            { file: "../_rules/priority/kube-prometheus-stack-config-reloaders" },
-            { file: "../_rules/priority/kube-prometheus-stack-etcd" },
-            { file: "../_rules/priority/kube-prometheus-stack-general" },
-            { file: "../_rules/priority/kube-prometheus-stack-k8s" },
-            { file: "../_rules/priority/kube-prometheus-stack-kube-apiserver-availability" },
-            { file: "../_rules/priority/kube-prometheus-stack-kube-apiserver-burnrate" },
-            { file: "../_rules/priority/kube-prometheus-stack-kube-apiserver-histogram" },
-            { file: "../_rules/priority/kube-prometheus-stack-kube-apiserver-slos" },
-            { file: "../_rules/priority/kube-prometheus-stack-kube-prometheus-general" },
-            { file: "../_rules/priority/kube-prometheus-stack-kube-prometheus-node-recording" },
-            { file: "../_rules/priority/kube-prometheus-stack-kube-scheduler" },
-            { file: "../_rules/priority/kube-prometheus-stack-kube-state-metrics" },
-            { file: "../_rules/priority/kube-prometheus-stack-kubelet" },
-            { file: "../_rules/priority/kube-prometheus-stack-kubernetes-apps" },
-            { file: "../_rules/priority/kube-prometheus-stack-kubernetes-resources" },
-            { file: "../_rules/priority/kube-prometheus-stack-kubernetes-storage" },
-            { file: "../_rules/priority/kube-prometheus-stack-kubernetes-system" },
-            { file: "../_rules/priority/kube-prometheus-stack-kubernetes-system-apiserver" },
-            { file: "../_rules/priority/kube-prometheus-stack-kubernetes-system-controller-manager" },
-            { file: "../_rules/priority/kube-prometheus-stack-kubernetes-system-kube-proxy" },
-            { file: "../_rules/priority/kube-prometheus-stack-kubernetes-system-kubelet" },
-            { file: "../_rules/priority/kube-prometheus-stack-kubernetes-system-scheduler" },
-            { file: "../_rules/priority/kube-prometheus-stack-node-exporter" },
-            { file: "../_rules/priority/kube-prometheus-stack-node" },
-            { file: "../_rules/priority/kube-prometheus-stack-prometheus" },
-            { file: "../_rules/priority/kube-prometheus-stack-prometheus-operator" },
-            { file: "../_rules/priority/blackbox" },
-            { file: "../_rules/priority/jenkins" }
         ]
-         */
     }
 ]
 
