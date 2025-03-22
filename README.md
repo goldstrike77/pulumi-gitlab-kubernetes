@@ -1,4 +1,4 @@
-# 演示在Kubernetes中安装Prometheus，Thanos，Grafana，Blackbox。
+# 演示在Kubernetes中安装Prometheus，Loki，Grafana，Tempo，Mimir。
 
 ```
 deploy time: 00:01:00
