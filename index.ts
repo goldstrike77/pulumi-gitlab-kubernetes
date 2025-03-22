@@ -925,7 +925,10 @@ SOFTWARE.
                     ingester: {
                         replicas: 3,
                         podLabels: podlabels,
-                        resources: {},
+                        resources: {
+                            limits: { cpu: "200m", memory: "256Mi" },
+                            requests: { cpu: "200m", memory: "256Mi" }
+                        },
                         persistence: {
                             enabled: true,
                             claims: [
@@ -941,32 +944,50 @@ SOFTWARE.
                         replicas: 3,
                         maxUnavailable: 1,
                         podLabels: podlabels,
-                        resources: {},
+                        resources: {
+                            limits: { cpu: "200m", memory: "256Mi" },
+                            requests: { cpu: "200m", memory: "256Mi" }
+                        }
                     },
                     querier: {
                         replicas: 1,
                         podLabels: podlabels,
-                        resources: {}
+                        resources: {
+                            limits: { cpu: "200m", memory: "256Mi" },
+                            requests: { cpu: "200m", memory: "256Mi" }
+                        }
                     },
                     queryFrontend: {
                         replicas: 1,
                         podLabels: podlabels,
-                        resources: {}
+                        resources: {
+                            limits: { cpu: "200m", memory: "256Mi" },
+                            requests: { cpu: "200m", memory: "256Mi" }
+                        }
                     },
                     queryScheduler: {
                         replicas: 1,
                         podLabels: podlabels,
-                        resources: {}
+                        resources: {
+                            limits: { cpu: "200m", memory: "256Mi" },
+                            requests: { cpu: "200m", memory: "256Mi" }
+                        }
                     },
                     indexGateway: {
                         replicas: 1,
                         podLabels: podlabels,
-                        resources: {}
+                        resources: {
+                            limits: { cpu: "200m", memory: "256Mi" },
+                            requests: { cpu: "200m", memory: "256Mi" }
+                        }
                     },
                     compactor: {
                         replicas: 1,
                         podLabels: podlabels,
-                        resources: {},
+                        resources: {
+                            limits: { cpu: "200m", memory: "256Mi" },
+                            requests: { cpu: "200m", memory: "256Mi" }
+                        },
                         persistence: {
                             enabled: true,
                             size: "7Gi",
@@ -981,7 +1002,11 @@ SOFTWARE.
                         directories: {}
                     },
                     memcached: {
-                        image: { repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/memcached" }
+                        image: { repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/memcached" },
+                        resources: {
+                            limits: { cpu: "200m", memory: "1024Mi" },
+                            requests: { cpu: "200m", memory: "1024Mi" }
+                        }
                     },
                     memcachedExporter: {
                         image: { repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/memcached-exporter" },
@@ -1050,6 +1075,162 @@ SOFTWARE.
             },
             {
                 namespace: "monitoring",
+                name: "tempo-distributed",
+                chart: "oci://harbor.home.local/helm-charts/tempo-distributed",
+                version: "1.32.7",
+                values: {
+                    global: {
+                        image: {
+                            registry: "registry.cn-shanghai.aliyuncs.com"
+                        }
+                    },
+                    fullnameOverride: "tempo",
+                    tempo: {
+                        image: {
+                            repository: "goldenimage/tempo"
+                        },
+                        podLabels: podlabels,
+                    },
+                    ingester: {
+                        replicas: 3,
+                        podLabels: podlabels,
+                        resources: {
+                            limits: { cpu: "200m", memory: "256Mi" },
+                            requests: { cpu: "200m", memory: "256Mi" }
+                        },
+                        persistence: {
+                            enabled: true,
+                            size: "7Gi",
+                            storageClass: "vsphere-san-sc"
+                        }
+                    },
+                    metricsGenerator: {
+                        enabled: true,
+                        replicas: 1,
+                        podLabels: podlabels,
+                        resources: {
+                            limits: { cpu: "200m", memory: "256Mi" },
+                            requests: { cpu: "200m", memory: "256Mi" }
+                        },
+                        persistence: {
+                            enabled: true,
+                            size: "7Gi",
+                            storageClass: "vsphere-san-sc"
+                        }
+                    },
+                    distributor: {
+                        replicas: 3,
+                        podLabels: podlabels,
+                        resources: {
+                            limits: { cpu: "200m", memory: "256Mi" },
+                            requests: { cpu: "200m", memory: "256Mi" }
+                        }
+                    },
+                    compactor: {
+                        replicas: 1,
+                        podLabels: podlabels,
+                        resources: {
+                            limits: { cpu: "200m", memory: "256Mi" },
+                            requests: { cpu: "200m", memory: "256Mi" }
+                        },
+                        config: {
+                            compaction: {
+                                block_retention: "168h"
+                            }
+                        }
+                    },
+                    querier: {
+                        replicas: 1,
+                        podLabels: podlabels,
+                        resources: {
+                            limits: { cpu: "200m", memory: "256Mi" },
+                            requests: { cpu: "200m", memory: "256Mi" }
+                        }
+                    },
+                    queryFrontend: {
+                        replicas: 1,
+                        podLabels: podlabels,
+                        resources: {
+                            limits: { cpu: "200m", memory: "256Mi" },
+                            requests: { cpu: "200m", memory: "256Mi" }
+                        }
+                    },
+                    multitenancyEnabled: false,
+                    traces: {
+                        jaeger: {
+                            grpc: { enabled: true },
+                            thriftBinary: { enabled: true },
+                            thriftCompact: { enabled: true },
+                            thriftHttp: { enabled: true }
+                        },
+                        zipkin: { enabled: true },
+                        otlp: {
+                            http: { enabled: true },
+                            grpc: { enabled: true }
+                        },
+                        opencensus: { enabled: true }
+                    },
+                    server: { logLevel: "warn" },
+                    storage: {
+                        trace: {
+                            backend: "s3",
+                            s3: {
+                                bucket: "tempo",
+                                endpoint: "obs.home.local",
+                                region: "us-east-1",
+                                access_key: config.require("AWS_ACCESS_KEY_ID"),
+                                secret_key: config.require("AWS_SECRET_ACCESS_KEY"),
+                                insecure: true,
+                                hedge_requests_at: "1000ms",
+                                hedge_requests_up_to: 2
+                            }
+                        }
+                    },
+                    memcached: {
+                        enabled: true,
+                        extraArgs: ["-m 1000", "-I 2m", "-v"],
+                        image: {
+                            repository: "goldenimage/memcached",
+                            tag: "1.6.37-alpine"
+                        },
+                        podLabels: podlabels,
+                        resources: {
+                            limits: { cpu: "200m", memory: "1024Mi" },
+                            requests: { cpu: "200m", memory: "1024Mi" }
+                        }
+                    },
+                    memcachedExporter: {
+                        enabled: true,
+                        image: {
+                            repository: "goldenimage/memcached-exporter",
+                            tag: "v0.15.1"
+                        },
+                        resources: {
+                            limits: { cpu: "100m", memory: "128Mi" },
+                            requests: { cpu: "100m", memory: "128Mi" }
+                        }
+                    },
+                    metaMonitoring: {
+                        serviceMonitor: {
+                            enabled: false,
+                            relabelings: [
+                                { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_project"], targetLabel: "project" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_group"], targetLabel: "group" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
+                            ]
+                        }
+                    },
+                    prometheusRule: {
+                        enabled: false
+                    }
+                }
+            },
+            {
+                namespace: "monitoring",
                 name: "grafana",
                 chart: "oci://harbor.home.local/helm-charts/grafana",
                 version: "6.57.4",
@@ -1080,11 +1261,7 @@ SOFTWARE.
                             { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
                         ]
                     },
-                    ingress: {
-                        enabled: true,
-                        ingressClassName: "traefik",
-                        hosts: ["grafana.home.local"],
-                    },
+                    ingress: { enabled: false },
                     resources: {
                         limits: { cpu: "200m", memory: "384Mi" },
                         requests: { cpu: "200m", memory: "384Mi" }
@@ -1121,7 +1298,7 @@ SOFTWARE.
                                     name: "DS_TEMPO",
                                     type: "tempo",
                                     access: "proxy",
-                                    url: "http://tempo-query-frontend.tracing:3100",
+                                    url: "http://tempo-query-frontend:3100",
                                     version: 1
                                 },
                                 {
