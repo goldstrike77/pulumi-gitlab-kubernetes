@@ -1,0 +1,13 @@
+encryptionsalt: v1:O9m9araID4s=:v1:lSlbTpelnRbMacxS:PRkIU2+H42+CQi04CyBqkagOx6k2sQ==
+config:
+  demo:AWS_ACCESS_KEY_ID:
+    secure: v1:8meJ7nI3AnxeHK0y:iuH36jrIGl6k+TTuON8FdYa9aAvN
+  demo:AWS_SECRET_ACCESS_KEY:
+    secure: v1:+0jSdUclH61yjzMs:iVn6CfonpLoiaAxYKDCuNUnjI52LURY0
+  demo:adminPassword:
+    secure: v1:g6tPix7LLKjgBpA2:/kVO/IHzwg4Kr/3ZEkyQ8vp76+245NNU
+  demo:client_secret:
+    secure: v1:jrkICoDV8oYjpX5l:sSLTzQ0SgeXGggvovnsmX9b10/sIlQGH0URWvc6ZduzHGM4LIyqRuNE57/gz4Ce1LEyK7gKbeLw=
+  demo:consulToken:
+    secure: v1:euhu5tdA7TCpipks:qRO+yjdCcNNrMY+r3oJ2HsPo6i3ByOeNJBNIrm+3wSa6LNYh+YSWPCLipFjhjbH7xaanGw==
+  kubernetes:context: kubernetes-admin@rke-it-prd-infra-shared-01

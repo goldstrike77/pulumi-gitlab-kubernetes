@@ -8,7 +8,7 @@ const podlabels = {
     customer: "it",
     environment: "prd",
     project: "container",
-    group: "k3s-it-prd-infra-shared-01",
+    group: "rke-it-prd-infra-shared-01",
     datacenter: "cn-north",
     domain: "local"
 }
@@ -20,7 +20,11 @@ const resources = [
                 metadata: {
                     name: "monitoring",
                     annotations: {},
-                    labels: {}
+                    labels: {
+                        "pod-security.kubernetes.io/enforce": "privileged",
+                        "pod-security.kubernetes.io/audit": "privileged",
+                        "pod-security.kubernetes.io/warn": "privileged"
+                    }
                 },
                 spec: {}
             }
@@ -113,6 +117,7 @@ const resources = [
             }
         ],
         release: [
+            /**
             {
                 namespace: "monitoring",
                 name: "kube-prometheus-stack",
@@ -377,7 +382,7 @@ SOFTWARE.
                             storage: {
                                 volumeClaimTemplate: {
                                     spec: {
-                                        storageClassName: "local-path",
+                                        storageClassName: "vsphere-san-sc",
                                         resources: {
                                             requests: {
                                                 storage: "3Gi"
@@ -642,7 +647,7 @@ SOFTWARE.
                             storageSpec: {
                                 volumeClaimTemplate: {
                                     spec: {
-                                        storageClassName: "local-path",
+                                        storageClassName: "vsphere-san-sc",
                                         resources: {
                                             requests: {
                                                 storage: "7Gi"
@@ -842,6 +847,7 @@ SOFTWARE.
                     prometheusRule: { enabled: false }
                 }
             },
+             */
             {
                 namespace: "monitoring",
                 name: "loki",
@@ -926,7 +932,7 @@ SOFTWARE.
                                 {
                                     name: "data",
                                     size: "7Gi",
-                                    storageClass: "local-path"
+                                    storageClass: "vsphere-san-sc"
                                 }
                             ]
                         }
@@ -964,7 +970,7 @@ SOFTWARE.
                         persistence: {
                             enabled: true,
                             size: "7Gi",
-                            storageClass: "local-path"
+                            storageClass: "vsphere-san-sc"
                         }
                     },
                     ruler: {
@@ -1018,7 +1024,7 @@ SOFTWARE.
                     },
                     "monitoring": {
                         "serviceMonitor": {
-                            "enabled": true,
+                            "enabled": false,
                             "interval": "15s",
                             "relabelings": [
                                 { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
@@ -1063,7 +1069,7 @@ SOFTWARE.
                     },
                     podLabels: podlabels,
                     serviceMonitor: {
-                        enabled: true,
+                        enabled: false,
                         relabelings: [
                             { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
                             { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
@@ -1085,7 +1091,7 @@ SOFTWARE.
                     },
                     persistence: {
                         enabled: true,
-                        storageClassName: "local-path",
+                        storageClassName: "vsphere-san-sc",
                         size: "7Gi"
                     },
                     initChownData: {
