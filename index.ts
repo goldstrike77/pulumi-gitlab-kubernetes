@@ -1011,8 +1011,8 @@ SOFTWARE.
                     memcachedExporter: {
                         image: { repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/memcached-exporter" },
                         resources: {
-                            limits: { cpu: "200m", memory: "64Mi" },
-                            requests: { cpu: "200m", memory: "64Mi" }
+                            limits: { cpu: "100m", memory: "64Mi" },
+                            requests: { cpu: "100m", memory: "64Mi" }
                         }
                     },
                     resultsCache: {
@@ -1067,10 +1067,10 @@ SOFTWARE.
                     },
                     test: { enabled: false },
                     lokiCanary: { enabled: false },
-                    backend: { "replicas": 0 },
-                    read: { "replicas": 0 },
-                    write: { "replicas": 0 },
-                    singleBinary: { "replicas": 0 }
+                    backend: { replicas: 0 },
+                    read: { replicas: 0 },
+                    write: { replicas: 0 },
+                    singleBinary: { replicas: 0 }
                 }
             },
             {
@@ -1371,6 +1371,196 @@ SOFTWARE.
                         },
                         dashboards: { enabled: true, label: "grafana_dashboard" }
                     }
+                }
+            },
+            {
+                namespace: "monitoring",
+                name: "mimir-distributed",
+                chart: "oci://harbor.home.local/helm-charts/mimir-distributed",
+                version: "5.6.0",
+                values: {
+                    fullnameOverride: "mimir",
+                    image: {
+                        repository: "registry.cn-shanghai.aliyuncs.com/goldenimage/mimir"
+                    },
+                    global: {
+                        podLabels: podlabels,
+                    },
+                    mimir: {
+                        structuredConfig: {
+                            common: {
+                                storage: {
+                                    backend: "s3",
+                                    s3: {
+                                        endpoint: "obs.home.local",
+                                        region: "us-east-1",
+                                        secret_access_key: config.require("AWS_SECRET_ACCESS_KEY"),
+                                        access_key_id: config.require("AWS_ACCESS_KEY_ID"),
+                                        http: {
+                                            insecure_skip_verify: true
+                                        }
+                                    }
+                                }
+                            },
+                            blocks_storage: {
+                                s3: {
+                                    bucket_name: "mimir-blocks"
+                                }
+                            },
+                            alertmanager_storage: {
+                                s3: {
+                                    bucket_name: "mimir-alertmanager"
+                                }
+                            },
+                            ruler_storage: {
+                                s3: {
+                                    bucket_name: "mimir-ruler"
+                                }
+                            }
+                        }
+                    },
+                    alertmanager: {
+                        persistentVolume: {
+                            enabled: true,
+                            size: "2Gi",
+                            storageClass: "vsphere-san-sc"
+                        },
+                        replicas: 1,
+                        resources: {
+                            limits: { cpu: "100m", memory: "128Mi" },
+                            requests: { cpu: "100m", memory: "128Mi" }
+                        }
+                    },
+                    compactor: {
+                        persistentVolume: {
+                            size: "7Gi",
+                            storageClass: "vsphere-san-sc"
+                        },
+                        resources: {
+                            limits: { cpu: "500m", memory: "1024Mi" },
+                            requests: { cpu: "500m", memory: "1024Mi" }
+                        }
+                    },
+                    distributor: {
+                        replicas: 3,
+                        resources: {
+                            limits: { cpu: "500m", memory: "1024Mi" },
+                            requests: { cpu: "500m", memory: "1024Mi" }
+                        }
+                    },
+                    ingester: {
+                        persistentVolume: {
+                            size: "31Gi",
+                            storageClass: "vsphere-san-sc"
+                        },
+                        replicas: 3,
+                        resources: {
+                            limits: { cpu: "500m", memory: "1024Mi" },
+                            requests: { cpu: "500m", memory: "1024Mi" }
+                        }
+                    },
+                    memcached: {
+                        image: {
+                            repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/memcached",
+                            tag: "1.6.37-alpine"
+                        },
+                        resources: {
+                            limits: { cpu: "200m", memory: "1024Mi" },
+                            requests: { cpu: "200m", memory: "1024Mi" }
+                        }
+                    },
+                    memcachedExporter: {
+                        image: {
+                            repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/memcached-exporter",
+                            tag: "v0.15.1"
+                        },
+                        resources: {
+                            limits: { cpu: "100m", memory: "64Mi" },
+                            requests: { cpu: "100m", memory: "64Mi" }
+                        }
+                    },
+                    "admin-cache": {
+                        enabled: true,
+                        replicas: 1
+                    },
+                    "chunks-cache": {
+                        enabled: true,
+                        replicas: 1
+                    },
+                    "index-cache": {
+                        enabled: true,
+                        replicas: 1
+                    },
+                    "metadata-cache": {
+                        enabled: true,
+                        replicas: 1,
+                        allocatedMemory: 512
+                    },
+                    "results-cache": {
+                        enabled: true,
+                        replicas: 1,
+                        allocatedMemory: 512
+                    },
+                    rollout_operator: {
+                        image: {
+                            repository: "registry.cn-shanghai.aliyuncs.com/goldenimage/rollout-operator",
+                            tag: "v0.24.0"
+                        },
+                        resources: {
+                            limits: { cpu: "100m", memory: "128Mi" },
+                            requests: { cpu: "100m", memory: "128Mi" }
+                        }
+                    },
+                    minio: { enabled: false },
+                    "overrides_exporter": {
+                        replicas: 1,
+                        resources: {
+                            limits: { cpu: "100m", memory: "128Mi" },
+                            requests: { cpu: "100m", memory: "128Mi" }
+                        }
+                    },
+                    querier: {
+                        replicas: 1,
+                        resources: {
+                            limits: { cpu: "200m", memory: "256Mi" },
+                            requests: { cpu: "200m", memory: "256Mi" }
+                        }
+                    },
+                    query_frontend: {
+                        replicas: 1,
+                        resources: {
+                            limits: { cpu: "200m", memory: "256Mi" },
+                            requests: { cpu: "200m", memory: "256Mi" }
+                        }
+                    },
+                    query_scheduler: {
+                        replicas: 1,
+                        resources: {
+                            limits: { cpu: "200m", memory: "256Mi" },
+                            requests: { cpu: "200m", memory: "256Mi" }
+                        }
+                    },
+                    ruler: {
+                        replicas: 1,
+                        resources: {
+                            limits: { cpu: "500m", memory: "1024Mi" },
+                            requests: { cpu: "500m", memory: "1024Mi" }
+                        }
+                    },
+                    store_gateway: {
+                        persistentVolume: {
+                            size: "31Gi",
+                            storageClass: "vsphere-san-sc"
+                        },
+                        replicas: 1,
+                        resources: {
+                            limits: { cpu: "500m", memory: "1024Mi" },
+                            requests: { cpu: "500m", memory: "1024Mi" }
+                        }
+                    },
+                    nginx: { enabled: false },
+                    admin_api: { enabled: false },
+                    gateway: { enabled: false }
                 }
             }
         ]
