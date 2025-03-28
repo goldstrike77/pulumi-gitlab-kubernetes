@@ -117,7 +117,6 @@ const resources = [
             }
         ],
         release: [
-            /**
             {
                 namespace: "monitoring",
                 name: "kube-prometheus-stack",
@@ -125,293 +124,8 @@ const resources = [
                 version: "69.8.2",
                 values: {
                     fullnameOverride: "kubepromstack",
-                    defaultRules: { create: true },
-                    alertmanager: {
-                        enabled: true,
-                        config: {
-                            global: {
-                                http_config: {
-                                    tls_config: {
-                                        insecure_skip_verify: true
-                                    }
-                                },
-                                resolve_timeout: "5m",
-                                smtp_smarthost: "127.0.0.1:25",
-                                smtp_from: "do-not-reply@example.com",
-                                smtp_require_tls: false,
-                                smtp_auth_username: "do-not-reply@example.com",
-                                smtp_auth_password: "password"
-                            },
-                            route: {
-                                group_by: ["alertname", "cluster", "service"],
-                                group_wait: "45s",
-                                group_interval: "5m",
-                                repeat_interval: "24h",
-                                receiver: "null",
-                                routes: [
-                                    {
-                                        receiver: "grafana-oncall",
-                                        continue: true
-                                    },
-                                    //{
-                                    //    receiver: 'email',
-                                    //    continue: true
-                                    //},
-                                    {
-                                        matchers: ["alertname = Watchdog"],
-                                        receiver: 'null',
-                                        continue: false
-                                    },
-                                ]
-                            },
-                            inhibit_rules: [
-                                {
-                                    source_matchers: ["severity = P1"],
-                                    target_matchers: ["severity =~ P2|P3|P4"],
-                                    equal: ['alertname', 'cluster', 'service']
-                                },
-                                {
-                                    source_matchers: ["severity = P2"],
-                                    target_matchers: ["severity =~ P3|P4"],
-                                    equal: ['alertname', 'cluster', 'service']
-                                },
-                                {
-                                    source_matchers: ["severity = P3"],
-                                    target_matchers: ["severity = P4"],
-                                    equal: ['alertname', 'cluster', 'service']
-                                }
-                            ],
-                            receivers: [
-                                {
-                                    name: "null"
-                                },
-                                {
-                                    name: "email",
-                                    email_configs: [
-                                        {
-                                            send_resolved: true,
-                                            headers: {
-                                                subject: "[ {{ .Status | toUpper }} - {{ .CommonLabels.severity | toUpper }} ] Alertmanager notify for {{ .CommonLabels.alertname }}"
-                                            },
-                                            to: "somebody@example.com"
-                                        }
-                                    ]
-                                },
-                                {
-                                    name: "grafana-oncall",
-                                    webhook_configs: [
-                                        {
-                                            url: "http://oncall-engine.oncall.svc.cluster.local:8080/integrations/v1/alertmanager/R6BlJsL6jf6xH5MSFHwJ2jNdN/",
-                                            send_resolved: true
-                                        }
-                                    ]
-                                }
-                            ],
-                            templates: ["/etc/alertmanager/config/*.tmpl"]
-                        },
-                        templateFiles: {
-                            "default.tmpl": `
-{{ define "__description" }}{{ end }}      
-{{ define "__text_alert_firing_list" }}{{ range . }}
-Start: {{ .StartsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}
-{{ range .Labels.SortedPairs }}{{ .Name | title }}: {{ .Value }}
-{{ end }}{{ range .Annotations.SortedPairs }}{{ .Name | title }}: {{ .Value }}{{ end }}
-{{ end }}{{ end }}      
-{{ define "__text_alert_resolved_list" }}{{ range . }}
-Start: {{ .StartsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}
-End:   {{ .EndsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}
-Duration: {{ (.EndsAt.Sub .StartsAt).Truncate 1000000000 }}
-{{ range .Labels.SortedPairs }}{{ .Name | title }}: {{ .Value }}
-{{ end }}{{ range .Annotations.SortedPairs }}{{ .Name | title }}: {{ .Value }}{{ end }}
-{{ end }}{{ end }}      
-{{ define "wechat.default.message" }}{{ if gt (len .Alerts.Firing) 0 -}}
-WARNING ☢
-{{ template "__text_alert_firing_list" .Alerts.Firing }}
-{{- end }}{{ if gt (len .Alerts.Resolved) 0 -}}
-RESOLVED ❀
-{{ template "__text_alert_resolved_list" .Alerts.Resolved }}
-{{- end }}
-{{- end }}
-{{ define "wechat.default.api_secret" }}{{ end }}
-{{ define "wechat.default.to_user" }}{{ end }}
-{{ define "wechat.default.to_party" }}{{ end }}
-{{ define "wechat.default.to_tag" }}{{ end }}
-{{ define "wechat.default.agent_id" }}{{ end }}    
-
-
-{{ define "email.default.html" }}
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<!--
-Style and HTML derived from https://github.com/mailgun/transactional-email-templates
-
-The MIT License (MIT)
-
-Copyright (c) 2014 Mailgun
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
--->
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-<head style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-<meta name="viewport" content="width=device-width" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
-
-</head>
-
-<body itemscope="" itemtype="http://schema.org/EmailMessage" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: none; height: 100%; line-height: 1.6em; width: 100% !important; background-color: #f6f6f6; margin: 0; padding: 0;" bgcolor="#f6f6f6">
-
-<table style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; width: 100%; background-color: #f6f6f6; margin: 0;" bgcolor="#f6f6f6">
-  <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-    <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0;" valign="top"></td>
-    <td width="600" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; display: block !important; max-width: 600px !important; clear: both !important; width: 100% !important; margin: 0 auto; padding: 0;" valign="top">
-      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; max-width: 600px; display: block; margin: 0 auto; padding: 0;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; border-radius: 3px; background-color: #fff; margin: 0; border: 1px solid #e9e9e9;" bgcolor="#fff">
-          <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-            <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 10px;" valign="top">
-              <table width="100%" cellpadding="0" cellspacing="0" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-                <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-                  <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                  </td>
-                </tr>
-                {{ if gt (len .Alerts.Firing) 0 }}
-                <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-                  <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                    <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; color: #ff0000; margin: 0;">[{{ .Alerts.Firing | len }}] WARNING ☢</strong>
- 
-                  </td>
-                </tr>
-                {{ end }}
-                {{ range .Alerts.Firing }}
-                <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-                  <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                    Start: {{ .StartsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
-                    {{ range .Labels.SortedPairs }}{{ .Name | title }}: {{ .Value }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />{{ end }}
-                    {{ range .Annotations.SortedPairs }}{{ .Name | title }}: {{ .Value }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />{{ end }}
-                  </td>
-                </tr>
-                {{ end }}
-
-                {{ if gt (len .Alerts.Resolved) 0 }}
-                  {{ if gt (len .Alerts.Firing) 0 }}
-                <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-                  <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                    <br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
-                    <hr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
-                    <br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
-                  </td>
-                </tr>
-                  {{ end }}
-                <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-                  <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                    <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; color: #44945e; margin: 0;">[{{ .Alerts.Resolved | len }}] RESOLVED ❀</strong>
- 
-                  </td>
-                </tr>
-                {{ end }}
-                {{ range .Alerts.Resolved }}
-                <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-                  <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                    Start: {{ .StartsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
-                    End: &nbsp;{{ .EndsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
-                    Duration: {{ (.EndsAt.Sub .StartsAt).Truncate 1000000000 }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
-                    {{ range .Labels.SortedPairs }}{{ .Name | title }}: {{ .Value }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />{{ end }}
-                    {{ range .Annotations.SortedPairs }}{{ .Name | title }}: {{ .Value }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />{{ end }}
-                  </td>
-                </tr>
-                {{ end }}
-              </table>
-            </td>
-          </tr>
-        </table>
-
-        <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; width: 100%; clear: both; color: #999; margin: 0; padding: 20px;">
-          <table width="100%" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-            <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-            </tr>
-          </table>
-        </div></div>
-    </td>
-    <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0;" valign="top"></td>
-  </tr>
-</table>
-
-</body>
-</html>
-
-{{ end }}
-`
-                        },
-                        ingress: {
-                            enabled: true,
-                            ingressClassName: "traefik",
-                            hosts: ["alertmanager.home.local"]
-                        },
-                        serviceMonitor: {
-                            relabelings: [
-                                { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
-                                { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
-                                { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
-                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "k3s-it-prd-infra-shared-01" },
-                                { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
-                                { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
-                            ]
-                        },
-                        alertmanagerSpec: {
-                            image: {
-                                registry: "swr.cn-east-3.myhuaweicloud.com",
-                                repository: "quay-io/alertmanager",
-                                tag: "v0.28.1"
-                            },
-                            logLevel: "warn",
-                            replicas: 1,
-                            storage: {
-                                volumeClaimTemplate: {
-                                    spec: {
-                                        storageClassName: "vsphere-san-sc",
-                                        resources: {
-                                            requests: {
-                                                storage: "3Gi"
-                                            }
-                                        }
-                                    }
-                                }
-                            },
-                            externalUrl: "https://alertmanager.home.local",
-                            resources: {
-                                limits: { cpu: "100m", memory: "64Mi" },
-                                requests: { cpu: "100m", memory: "64Mi" }
-                            },
-                            volumes: [
-                                {
-                                    name: "cst-timezone",
-                                    hostPath: {
-                                        path: "/usr/share/zoneinfo/PRC",
-                                        type: "File"
-                                    }
-                                }
-                            ],
-                            volumeMounts: [{
-                                name: "cst-timezone",
-                                mountPath: "/etc/localtime",
-                                readOnly: true
-                            }]
-                        }
-                    },
+                    defaultRules: { create: false },
+                    alertmanager: { enabled: false },
                     grafana: { enabled: false },
                     kubeApiServer: {
                         enabled: true,
@@ -420,7 +134,7 @@ SOFTWARE.
                                 { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
                                 { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
                                 { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
-                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "k3s-it-prd-infra-shared-01" },
+                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "rke-it-prd-infra-shared-01" },
                                 { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
                                 { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
                             ]
@@ -435,7 +149,7 @@ SOFTWARE.
                                 { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
                                 { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
                                 { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
-                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "k3s-it-prd-infra-shared-01" },
+                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "rke-it-prd-infra-shared-01" },
                                 { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
                                 { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
                             ],
@@ -444,7 +158,7 @@ SOFTWARE.
                                 { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
                                 { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
                                 { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
-                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "k3s-it-prd-infra-shared-01" },
+                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "rke-it-prd-infra-shared-01" },
                                 { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
                                 { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
                             ]
@@ -459,7 +173,7 @@ SOFTWARE.
                                 { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
                                 { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
                                 { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
-                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "k3s-it-prd-infra-shared-01" },
+                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "rke-it-prd-infra-shared-01" },
                                 { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
                                 { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
                             ]
@@ -467,20 +181,7 @@ SOFTWARE.
                     },
                     kubeEtcd: { enabled: false },
                     kubeScheduler: { enabled: false },
-                    kubeProxy: {
-                        enabled: true,
-                        serviceMonitor: {
-                            relabelings: [
-                                { sourceLabels: ["__metrics_path__"], targetLabel: "metrics_path" },
-                                { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
-                                { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
-                                { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
-                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "k3s-it-prd-infra-shared-01" },
-                                { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
-                                { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
-                            ]
-                        }
-                    },
+                    kubeProxy: { enabled: false },
                     kubeStateMetrics: { enabled: true },
                     "kube-state-metrics": {
                         fullnameOverride: "kube-state-metrics",
@@ -604,18 +305,14 @@ SOFTWARE.
                     },
                     prometheus: {
                         enabled: true,
-                        ingress: {
-                            enabled: true,
-                            ingressClassName: "traefik",
-                            hosts: ["prometheus.home.local"]
-                        },
+                        ingress: { enabled: false },
                         serviceMonitor: {
                             relabelings: [
                                 { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
                                 { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
                                 { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
                                 { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
-                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "k3s-it-prd-infra-shared-01" },
+                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "rke-it-prd-infra-shared-01" },
                                 { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
                                 { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
                             ]
@@ -630,7 +327,7 @@ SOFTWARE.
                                 repository: "quay-io/prometheus",
                                 tag: "v3.2.1"
                             },
-                            externalLabels: { cluster: "k3s-it-prd-infra-shared-01" },
+                            externalLabels: { cluster: "rke-it-prd-infra-shared-01" },
                             externalUrl: "https://prometheus.home.local",
                             ruleSelectorNilUsesHelmValues: false,
                             serviceMonitorSelectorNilUsesHelmValues: false,
@@ -640,6 +337,14 @@ SOFTWARE.
                             retentionSize: "4096MB",
                             replicas: 1,
                             logLevel: "warn",
+                            remoteWrite: [
+                                {
+                                    url: "http://mimir-distributor:8080/api/v1/push",
+                                    headers: {
+                                        "X-Scope-OrgID": "anonymous"
+                                    }
+                                }
+                            ],
                             resources: {
                                 limits: { cpu: "1000m", memory: "2048Mi" },
                                 requests: { cpu: "1000m", memory: "2048Mi" }
@@ -656,97 +361,6 @@ SOFTWARE.
                                     }
                                 }
                             },
-                            additionalScrapeConfigs: `
-- job_name: 'unAuthenticate exporters'
-  tls_config:
-    insecure_skip_verify: true
-  consul_sd_configs:
-    - server: '192.168.0.1:8501'
-      token: ${config.require("consulToken")}
-      refresh_interval: 60s
-      services: ['alertmanager_exporter', 'azure-metrics_exporter', 'auditbeat_exporter', 'blackbox_exporter', 'consul_exporter', 'dellhw_exporter', 'docker_exporter', 'elasticsearch_exporter', 'filebeat_exporter', 'gitlab_exporter', 'grafana_exporter', 'haproxy_exporter', 'ingress-nginx_exporter', 'jenkins_exporter', 'jmx_exporter', 'kafka_exporter', 'keepalived_exporter', 'kibana_exporter', 'kube-state-metrics_exporter', 'logstash_exporter', 'minio_exporter', 'mongodb_exporter', 'mysqld_exporter', 'netdata_exporter', 'nginx_exporter', 'node_exporter', 'openldap_exporter', 'ossec_exporter', 'packetbeat_exporter', 'php-fpm_exporter', 'postgres_exporter', 'pushgateway_exporter', 'prometheus_exporter', 'rabbitmq_exporter', 'redis-sentinel_exporter', 'redis-server_exporter', 'skywalking_exporter', 'smokeping_exporter', 'snmp_exporter', 'statsd_exporter', 'thanos-bucket_exporter', 'thanos-compact_exporter', 'thanos-query_exporter', 'thanos-query-frontend_exporter', 'thanos-sidecar_exporter', 'thanos-store_exporter', 'vault_exporter', 'vmware_exporter', 'wmi_exporter', 'zookeeper_exporter']
-      scheme: https
-      tls_config:
-        insecure_skip_verify: true
-  relabel_configs:
-    - regex: job
-      action: labeldrop
-    - source_labels: [__meta_consul_service_address]
-      target_label: 'ipaddress'
-    - regex: __meta_consul_service_metadata_(.+)
-      action: labelmap
-    - source_labels: [__meta_consul_service]
-      replacement: '\$\{1\}'
-      target_label: 'service'
-      regex: '([^=]+)_exporter'
-    - source_labels: [__meta_consul_service_metadata_metrics_path]
-      action: replace
-      target_label: __metrics_path__
-      regex: (.+)
-    - source_labels: [__meta_consul_service_metadata_scheme]
-      action: replace
-      target_label: __scheme__
-      regex: (.+)
-- job_name: 'Authenticate exporters'
-  basic_auth:
-    username: 'prometheus'
-    password: 'tj@VH9ECytRF'
-  tls_config:
-    insecure_skip_verify: true
-  consul_sd_configs:
-    - server: '192.168.0.1:8501'
-      token: ${config.require("consulToken")}
-      refresh_interval: 60s
-      services: ['alerta_exporter', 'graylog_exporter']
-      scheme: https
-      tls_config:
-        insecure_skip_verify: true
-  relabel_configs:
-    - regex: job
-      action: labeldrop
-    - source_labels: [__meta_consul_service_address]
-      target_label: 'ipaddress'
-    - regex: __meta_consul_service_metadata_(.+)
-      action: labelmap
-    - source_labels: [__meta_consul_service]
-      replacement: '\$\{1\}'
-      target_label: 'service'
-      regex: '([^=]+)_exporter'
-    - source_labels: [__meta_consul_service_metadata_metrics_path]
-      action: replace
-      target_label: __metrics_path__
-      regex: (.+)
-    - source_labels: [__meta_consul_service_metadata_scheme]
-      action: replace
-      target_label: __scheme__
-      regex: (.+)
-- job_name: 'Probers'
-  consul_sd_configs:
-    - server: '192.168.0.1:8501'
-      token: ${config.require("consulToken")}
-      refresh_interval: 60s
-      services: ['blackbox_exporter_prober', 'smokeping_prober_prober', 'snmp_exporter_prober']
-      scheme: https
-      tls_config:
-        insecure_skip_verify: true
-  relabel_configs:
-    - regex: job
-      action: labeldrop
-    - regex: __meta_consul_service_metadata_(.+)
-      action: labelmap
-    - source_labels: [__meta_consul_service_metadata_target]
-      target_label: '__param_target'
-    - source_labels: [__meta_consul_service_metadata_module]
-      target_label: '__param_module'
-    - source_labels: [__meta_consul_service_metadata_address]
-      action: replace
-      target_label: __address__
-      regex: (.+)
-    - source_labels: [__meta_consul_service_metadata_metrics_path]
-      action: replace
-      target_label: __metrics_path__
-      regex: (.+)
-`,
                             additionalAlertRelabelConfigs: [
                                 {
                                     regex: "prometheus|cluster",
@@ -847,12 +461,11 @@ SOFTWARE.
                     prometheusRule: { enabled: false }
                 }
             },
-             */
             {
                 namespace: "monitoring",
                 name: "loki",
                 chart: "oci://harbor.home.local/helm-charts/loki",
-                version: "6.28.0",
+                version: "6.29.0",
                 values: {
                     global: {
                         image: {
@@ -1077,7 +690,7 @@ SOFTWARE.
                 namespace: "monitoring",
                 name: "tempo-distributed",
                 chart: "oci://harbor.home.local/helm-charts/tempo-distributed",
-                version: "1.32.7",
+                version: "1.33.0",
                 values: {
                     global: {
                         image: {
@@ -1093,7 +706,6 @@ SOFTWARE.
                     },
                     ingester: {
                         replicas: 3,
-                        podLabels: podlabels,
                         resources: {
                             limits: { cpu: "200m", memory: "256Mi" },
                             requests: { cpu: "200m", memory: "256Mi" }
@@ -1107,7 +719,6 @@ SOFTWARE.
                     metricsGenerator: {
                         enabled: true,
                         replicas: 1,
-                        podLabels: podlabels,
                         resources: {
                             limits: { cpu: "200m", memory: "256Mi" },
                             requests: { cpu: "200m", memory: "256Mi" }
@@ -1120,7 +731,6 @@ SOFTWARE.
                     },
                     distributor: {
                         replicas: 3,
-                        podLabels: podlabels,
                         resources: {
                             limits: { cpu: "200m", memory: "256Mi" },
                             requests: { cpu: "200m", memory: "256Mi" }
@@ -1128,7 +738,6 @@ SOFTWARE.
                     },
                     compactor: {
                         replicas: 1,
-                        podLabels: podlabels,
                         resources: {
                             limits: { cpu: "200m", memory: "256Mi" },
                             requests: { cpu: "200m", memory: "256Mi" }
@@ -1141,7 +750,6 @@ SOFTWARE.
                     },
                     querier: {
                         replicas: 1,
-                        podLabels: podlabels,
                         resources: {
                             limits: { cpu: "200m", memory: "256Mi" },
                             requests: { cpu: "200m", memory: "256Mi" }
@@ -1149,7 +757,6 @@ SOFTWARE.
                     },
                     queryFrontend: {
                         replicas: 1,
-                        podLabels: podlabels,
                         resources: {
                             limits: { cpu: "200m", memory: "256Mi" },
                             requests: { cpu: "200m", memory: "256Mi" }
@@ -1191,9 +798,8 @@ SOFTWARE.
                         extraArgs: ["-m 1000", "-I 2m", "-v"],
                         image: {
                             repository: "goldenimage/memcached",
-                            tag: "1.6.37-alpine"
+                            tag: "1.6.38-alpine"
                         },
-                        podLabels: podlabels,
                         resources: {
                             limits: { cpu: "200m", memory: "1024Mi" },
                             requests: { cpu: "200m", memory: "1024Mi" }
@@ -1203,7 +809,7 @@ SOFTWARE.
                         enabled: true,
                         image: {
                             repository: "goldenimage/memcached-exporter",
-                            tag: "v0.15.1"
+                            tag: "v0.15.2"
                         },
                         resources: {
                             limits: { cpu: "100m", memory: "128Mi" },
@@ -1233,13 +839,16 @@ SOFTWARE.
                 namespace: "monitoring",
                 name: "grafana",
                 chart: "oci://harbor.home.local/helm-charts/grafana",
-                version: "6.57.4",
+                version: "8.11.0",
                 values: {
+                    global: {
+                        imageRegistry: "swr.cn-east-3.myhuaweicloud.com"
+                    },
                     replicas: 1,
                     image:
                     {
-                        repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/grafana",
-                        tag: "9.5.5",
+                        repository: "docker-io/grafana",
+                        tag: "11.6.0",
                     },
                     deploymentStrategy: {
                         type: "RollingUpdate",
@@ -1274,7 +883,7 @@ SOFTWARE.
                     initChownData: {
                         enabled: true,
                         image: {
-                            repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/busybox",
+                            repository: "docker-io/busybox",
                             tag: "1.36.1"
                         },
                         resources: {
@@ -1308,31 +917,34 @@ SOFTWARE.
                                     url: "http://loki-query-frontend:3100",
                                     version: 1,
                                     jsonData: {
-                                        maxLines: 5000
+                                        maxLines: 5000,
+                                        httpHeaderName1: "X-Scope-OrgID"
+                                    }
+                                },
+                                {
+                                    name: "DS_MIMIR",
+                                    type: "prometheus",
+                                    access: "proxy",
+                                    url: "http://mimir-query-frontend:8080/prometheus",
+                                    jsonData: {
+                                        maxLines: 5000,
+                                        httpHeaderName1: "X-Scope-OrgID",
+                                        httpMethod: "POST",
+                                        oauthPassThru: false,
+                                        prometheusType: "Mimir",
+                                        prometheusVersion: "2.9.1"
                                     },
-                                    derivedFields: {
-                                        datasourceUid: "",
-                                        matcherRegex: "(?:traceID|trace_id)=(\\w+)",
-                                        name: "TraceID",
-                                        url: "${__value.raw}"
+                                    secureJsonFields: {
+                                        httpHeaderValue1: true
                                     }
                                 }
+
                             ]
                         }
                     },
                     "grafana.ini": {
-                        "auth.azuread": {
-                            name: "Microsoft Entra ID",
-                            enabled: true,
-                            allow_sign_up: true,
-                            client_id: "7d91f7eb-2dcb-4989-9b11-94bbf2322be5",
-                            client_secret: config.require("client_secret"),
-                            auth_url: "https://login.microsoftonline.com/e824e20c-c5d7-4a69-adb1-3494404763a5/oauth2/v2.0/authorize",
-                            token_url: "https://login.microsoftonline.com/e824e20c-c5d7-4a69-adb1-3494404763a5/oauth2/v2.0/token",
-                            role_attribute_strict: false
-                        },
                         server: {
-                            root_url: "https://grafana.home.local",
+                            root_url: "https://grafana-lgtm.home.local",
                         },
                         paths: {
                             data: "/var/lib/grafana/",
@@ -1349,21 +961,15 @@ SOFTWARE.
                             reporting_enabled: false
                         },
                         log: { mode: "console", level: "info" },
-                        //                        grafana_net: { url: "https://grafana.net" },
                         user: {
                             default_theme: "dark",
                             home_page: ""
-                        },
-                        // tracing: { type: "jaeger" },
-                        // "tracing.jaeger": {
-                        //     address: "tempo-distributor.tracing.svc.cluster.local:6831",
-                        //     zipkin_propagation: true
-                        // }
+                        }
                     },
                     sidecar: {
                         image: {
-                            repository: "swr.cn-east-3.myhuaweicloud.com/quay-io/k8s-sidecar",
-                            tag: "1.24.3"
+                            repository: "quay-io/k8s-sidecar",
+                            tag: "1.30.0"
                         },
                         resources: {
                             limits: { cpu: "50m", memory: "128Mi" },
@@ -1388,6 +994,8 @@ SOFTWARE.
                     },
                     mimir: {
                         structuredConfig: {
+                            usage_stats: { enabled: false },
+                            multitenancy_enabled: false,
                             common: {
                                 storage: {
                                     backend: "s3",
@@ -1416,6 +1024,10 @@ SOFTWARE.
                                 s3: {
                                     bucket_name: "mimir-ruler"
                                 }
+                            },
+                            limits: {
+                                compactor_blocks_retention_period: "168h",
+                                max_label_names_per_series: 50
                             }
                         }
                     },
@@ -1462,7 +1074,7 @@ SOFTWARE.
                     memcached: {
                         image: {
                             repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/memcached",
-                            tag: "1.6.37-alpine"
+                            tag: "1.6.38-alpine"
                         },
                         resources: {
                             limits: { cpu: "200m", memory: "1024Mi" },
@@ -1472,7 +1084,7 @@ SOFTWARE.
                     memcachedExporter: {
                         image: {
                             repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/memcached-exporter",
-                            tag: "v0.15.1"
+                            tag: "v0.15.2"
                         },
                         resources: {
                             limits: { cpu: "100m", memory: "64Mi" },
@@ -1556,11 +1168,68 @@ SOFTWARE.
                         resources: {
                             limits: { cpu: "500m", memory: "1024Mi" },
                             requests: { cpu: "500m", memory: "1024Mi" }
-                        }
+                        },
+                        zoneAwareReplication: { enabled: false }
                     },
                     nginx: { enabled: false },
                     admin_api: { enabled: false },
                     gateway: { enabled: false }
+                }
+            }
+        ],
+        customresource: [
+            {
+                apiVersion: "apisix.apache.org/v2",
+                kind: "ApisixRoute",
+                metadata: {
+                    name: "prometheus",
+                    namespace: "monitoring"
+                },
+                spec: {
+                    http: [
+                        {
+                            name: "root",
+                            match: {
+                                methods: ["GET", "HEAD"],
+                                hosts: ["prometheus-lgtm.home.local"],
+                                paths: ["/*"]
+                            },
+                            backends: [
+                                {
+                                    serviceName: "kubepromstack-prometheus",
+                                    servicePort: 9090,
+                                    resolveGranularity: "service"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            {
+                apiVersion: "apisix.apache.org/v2",
+                kind: "ApisixRoute",
+                metadata: {
+                    name: "grafana",
+                    namespace: "monitoring"
+                },
+                spec: {
+                    http: [
+                        {
+                            name: "root",
+                            match: {
+                                methods: ["GET", "HEAD", "POST", "PUT", "DELETE"],
+                                hosts: ["grafana-lgtm.home.local"],
+                                paths: ["/*"]
+                            },
+                            backends: [
+                                {
+                                    serviceName: "grafana",
+                                    servicePort: 80,
+                                    resolveGranularity: "service"
+                                }
+                            ]
+                        }
+                    ]
                 }
             }
         ]
@@ -1572,3 +1241,4 @@ const secret = new k8s.core.v1.Secret('Secret', { resources: resources }, { depe
 const configmap = new k8s.core.v1.ConfigMap('ConfigMap', { resources: resources }, { dependsOn: [namespace] });
 const release = new k8s.helm.v3.Release('Release', { resources: resources }, { dependsOn: [secret, configmap] });
 const configfile = new k8s.yaml.ConfigFile('ConfigFile', { resources: resources }, { dependsOn: [release] });
+const customresource = new k8s.apiextensions.CustomResource('CustomResource', { resources: resources }, { dependsOn: [namespace] });
