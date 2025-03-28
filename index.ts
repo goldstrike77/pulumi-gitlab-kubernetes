@@ -817,10 +817,9 @@ SOFTWARE.
                         tracing: { "enabled": false },
                         querier: { "max_concurrent": 4 }
                     },
-                    gateway: { "enabled": false },
+                    gateway: { enabled: false },
                     ingester: {
                         replicas: 3,
-                        podLabels: podlabels,
                         resources: {
                             limits: { cpu: "200m", memory: "256Mi" },
                             requests: { cpu: "200m", memory: "256Mi" }
@@ -839,7 +838,6 @@ SOFTWARE.
                     distributor: {
                         replicas: 3,
                         maxUnavailable: 1,
-                        podLabels: podlabels,
                         resources: {
                             limits: { cpu: "200m", memory: "256Mi" },
                             requests: { cpu: "200m", memory: "256Mi" }
@@ -847,7 +845,6 @@ SOFTWARE.
                     },
                     querier: {
                         replicas: 1,
-                        podLabels: podlabels,
                         resources: {
                             limits: { cpu: "200m", memory: "256Mi" },
                             requests: { cpu: "200m", memory: "256Mi" }
@@ -855,7 +852,6 @@ SOFTWARE.
                     },
                     queryFrontend: {
                         replicas: 1,
-                        podLabels: podlabels,
                         resources: {
                             limits: { cpu: "200m", memory: "256Mi" },
                             requests: { cpu: "200m", memory: "256Mi" }
@@ -863,7 +859,6 @@ SOFTWARE.
                     },
                     queryScheduler: {
                         replicas: 1,
-                        podLabels: podlabels,
                         resources: {
                             limits: { cpu: "200m", memory: "256Mi" },
                             requests: { cpu: "200m", memory: "256Mi" }
@@ -871,7 +866,6 @@ SOFTWARE.
                     },
                     indexGateway: {
                         replicas: 1,
-                        podLabels: podlabels,
                         resources: {
                             limits: { cpu: "200m", memory: "256Mi" },
                             requests: { cpu: "200m", memory: "256Mi" }
@@ -879,7 +873,6 @@ SOFTWARE.
                     },
                     compactor: {
                         replicas: 1,
-                        podLabels: podlabels,
                         resources: {
                             limits: { cpu: "200m", memory: "256Mi" },
                             requests: { cpu: "200m", memory: "256Mi" }
@@ -893,16 +886,11 @@ SOFTWARE.
                     ruler: {
                         enabled: false,
                         replicas: 0,
-                        podLabels: podlabels,
                         resources: {},
                         directories: {}
                     },
                     memcached: {
-                        image: { repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/memcached" },
-                        resources: {
-                            limits: { cpu: "200m", memory: "1024Mi" },
-                            requests: { cpu: "200m", memory: "1024Mi" }
-                        }
+                        image: { repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/memcached" }
                     },
                     memcachedExporter: {
                         image: { repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/memcached-exporter" },
@@ -921,7 +909,10 @@ SOFTWARE.
                         writebackSizeLimit: "500MB",
                         writebackBuffer: 500000,
                         writebackParallelism: 1,
-                        podLabels: podlabels
+                        resources: {
+                            limits: { cpu: "100m", memory: "1056Mi" },
+                            requests: { cpu: "100m", memory: "1056Mi" }
+                        }
                     },
                     chunksCache: {
                         enabled: true,
@@ -930,14 +921,17 @@ SOFTWARE.
                         timeout: "2000ms",
                         defaultValidity: "0s",
                         replicas: 1,
-                        allocatedMemory: 8192,
+                        allocatedMemory: 2048,
                         maxItemMemory: 5,
                         connectionLimit: 16384,
                         writebackSizeLimit: "500MB",
                         writebackBuffer: 500000,
                         writebackParallelism: 1,
                         initContainers: [],
-                        podLabels: podlabels
+                        resources: {
+                            limits: { cpu: "100m", memory: "2080Mi" },
+                            requests: { cpu: "100m", memory: "2080Mi" }
+                        }
                     },
                     "sidecar": {
                         image: { repository: "quay-io/k8s-sidecar" },
@@ -1347,10 +1341,6 @@ SOFTWARE.
                         image: {
                             repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/memcached",
                             tag: "1.6.38-alpine"
-                        },
-                        resources: {
-                            limits: { cpu: "200m", memory: "1024Mi" },
-                            requests: { cpu: "200m", memory: "1024Mi" }
                         }
                     },
                     memcachedExporter: {
@@ -1365,25 +1355,48 @@ SOFTWARE.
                     },
                     "admin-cache": {
                         enabled: true,
-                        replicas: 1
+                        replicas: 1,
+                        allocatedMemory: 64,
+                        resources: {
+                            limits: { cpu: "100m", memory: "96Mi" },
+                            requests: { cpu: "100m", memory: "96Mi" }
+                        }
                     },
                     "chunks-cache": {
                         enabled: true,
-                        replicas: 1
+                        replicas: 1,
+                        allocatedMemory: 2048,
+                        resources: {
+                            limits: { cpu: "100m", memory: "2080Mi" },
+                            requests: { cpu: "100m", memory: "2080Mi" }
+                        }
                     },
                     "index-cache": {
                         enabled: true,
-                        replicas: 1
+                        replicas: 1,
+                        allocatedMemory: 1024,
+                        resources: {
+                            limits: { cpu: "100m", memory: "1056Mi" },
+                            requests: { cpu: "100m", memory: "1056Mi" }
+                        }
                     },
                     "metadata-cache": {
                         enabled: true,
                         replicas: 1,
-                        allocatedMemory: 512
+                        allocatedMemory: 256,
+                        resources: {
+                            limits: { cpu: "100m", memory: "288Mi" },
+                            requests: { cpu: "100m", memory: "288Mi" }
+                        }
                     },
                     "results-cache": {
                         enabled: true,
                         replicas: 1,
-                        allocatedMemory: 512
+                        allocatedMemory: 256,
+                        resources: {
+                            limits: { cpu: "100m", memory: "288Mi" },
+                            requests: { cpu: "100m", memory: "288Mi" }
+                        }
                     },
                     rollout_operator: {
                         image: {
