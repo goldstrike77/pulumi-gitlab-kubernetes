@@ -125,7 +125,290 @@ const resources = [
                 values: {
                     fullnameOverride: "kubepromstack",
                     defaultRules: { create: false },
-                    alertmanager: { enabled: false },
+                    alertmanager: {
+                        enabled: true,
+                        config: {
+                            global: {
+                                http_config: {
+                                    tls_config: {
+                                        insecure_skip_verify: true
+                                    }
+                                },
+                                resolve_timeout: "5m",
+                                smtp_smarthost: "127.0.0.1:25",
+                                smtp_from: "do-not-reply@example.com",
+                                smtp_require_tls: false,
+                                smtp_auth_username: "do-not-reply@example.com",
+                                smtp_auth_password: "password"
+                            },
+                            route: {
+                                group_by: ["alertname", "cluster", "service"],
+                                group_wait: "45s",
+                                group_interval: "5m",
+                                repeat_interval: "24h",
+                                receiver: "null",
+                                routes: [
+                                    {
+                                        receiver: "grafana-oncall",
+                                        continue: true
+                                    },
+                                    //{
+                                    //    receiver: 'email',
+                                    //    continue: true
+                                    //},
+                                    {
+                                        matchers: ["alertname = Watchdog"],
+                                        receiver: 'null',
+                                        continue: false
+                                    },
+                                ]
+                            },
+                            inhibit_rules: [
+                                {
+                                    source_matchers: ["severity = P1"],
+                                    target_matchers: ["severity =~ P2|P3|P4"],
+                                    equal: ['alertname', 'cluster', 'service']
+                                },
+                                {
+                                    source_matchers: ["severity = P2"],
+                                    target_matchers: ["severity =~ P3|P4"],
+                                    equal: ['alertname', 'cluster', 'service']
+                                },
+                                {
+                                    source_matchers: ["severity = P3"],
+                                    target_matchers: ["severity = P4"],
+                                    equal: ['alertname', 'cluster', 'service']
+                                }
+                            ],
+                            receivers: [
+                                {
+                                    name: "null"
+                                },
+                                {
+                                    name: "email",
+                                    email_configs: [
+                                        {
+                                            send_resolved: true,
+                                            headers: {
+                                                subject: "[ {{ .Status | toUpper }} - {{ .CommonLabels.severity | toUpper }} ] Alertmanager notify for {{ .CommonLabels.alertname }}"
+                                            },
+                                            to: "somebody@example.com"
+                                        }
+                                    ]
+                                },
+                                {
+                                    name: "grafana-oncall",
+                                    webhook_configs: [
+                                        {
+                                            url: "http://oncall-engine.oncall.svc.cluster.local:8080/integrations/v1/alertmanager/R6BlJsL6jf6xH5MSFHwJ2jNdN/",
+                                            send_resolved: true
+                                        }
+                                    ]
+                                }
+                            ],
+                            templates: ["/etc/alertmanager/config/*.tmpl"]
+                        },
+                        templateFiles: {
+                            "default.tmpl": `
+{{ define "__description" }}{{ end }}      
+{{ define "__text_alert_firing_list" }}{{ range . }}
+Start: {{ .StartsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}
+{{ range .Labels.SortedPairs }}{{ .Name | title }}: {{ .Value }}
+{{ end }}{{ range .Annotations.SortedPairs }}{{ .Name | title }}: {{ .Value }}{{ end }}
+{{ end }}{{ end }}      
+{{ define "__text_alert_resolved_list" }}{{ range . }}
+Start: {{ .StartsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}
+End:   {{ .EndsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}
+Duration: {{ (.EndsAt.Sub .StartsAt).Truncate 1000000000 }}
+{{ range .Labels.SortedPairs }}{{ .Name | title }}: {{ .Value }}
+{{ end }}{{ range .Annotations.SortedPairs }}{{ .Name | title }}: {{ .Value }}{{ end }}
+{{ end }}{{ end }}      
+{{ define "wechat.default.message" }}{{ if gt (len .Alerts.Firing) 0 -}}
+WARNING ☢
+{{ template "__text_alert_firing_list" .Alerts.Firing }}
+{{- end }}{{ if gt (len .Alerts.Resolved) 0 -}}
+RESOLVED ❀
+{{ template "__text_alert_resolved_list" .Alerts.Resolved }}
+{{- end }}
+{{- end }}
+{{ define "wechat.default.api_secret" }}{{ end }}
+{{ define "wechat.default.to_user" }}{{ end }}
+{{ define "wechat.default.to_party" }}{{ end }}
+{{ define "wechat.default.to_tag" }}{{ end }}
+{{ define "wechat.default.agent_id" }}{{ end }}    
+
+
+{{ define "email.default.html" }}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!--
+Style and HTML derived from https://github.com/mailgun/transactional-email-templates
+
+The MIT License (MIT)
+
+Copyright (c) 2014 Mailgun
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+<head style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+<meta name="viewport" content="width=device-width" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/EmailMessage" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: none; height: 100%; line-height: 1.6em; width: 100% !important; background-color: #f6f6f6; margin: 0; padding: 0;" bgcolor="#f6f6f6">
+
+<table style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; width: 100%; background-color: #f6f6f6; margin: 0;" bgcolor="#f6f6f6">
+  <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+    <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0;" valign="top"></td>
+    <td width="600" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; display: block !important; max-width: 600px !important; clear: both !important; width: 100% !important; margin: 0 auto; padding: 0;" valign="top">
+      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; max-width: 600px; display: block; margin: 0 auto; padding: 0;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; border-radius: 3px; background-color: #fff; margin: 0; border: 1px solid #e9e9e9;" bgcolor="#fff">
+          <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+            <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 10px;" valign="top">
+              <table width="100%" cellpadding="0" cellspacing="0" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+                <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+                  <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
+                  </td>
+                </tr>
+                {{ if gt (len .Alerts.Firing) 0 }}
+                <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+                  <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
+                    <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; color: #ff0000; margin: 0;">[{{ .Alerts.Firing | len }}] WARNING ☢</strong>
+ 
+                  </td>
+                </tr>
+                {{ end }}
+                {{ range .Alerts.Firing }}
+                <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+                  <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
+                    Start: {{ .StartsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+                    {{ range .Labels.SortedPairs }}{{ .Name | title }}: {{ .Value }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />{{ end }}
+                    {{ range .Annotations.SortedPairs }}{{ .Name | title }}: {{ .Value }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />{{ end }}
+                  </td>
+                </tr>
+                {{ end }}
+
+                {{ if gt (len .Alerts.Resolved) 0 }}
+                  {{ if gt (len .Alerts.Firing) 0 }}
+                <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+                  <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
+                    <br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+                    <hr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+                    <br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+                  </td>
+                </tr>
+                  {{ end }}
+                <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+                  <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
+                    <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; color: #44945e; margin: 0;">[{{ .Alerts.Resolved | len }}] RESOLVED ❀</strong>
+ 
+                  </td>
+                </tr>
+                {{ end }}
+                {{ range .Alerts.Resolved }}
+                <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+                  <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
+                    Start: {{ .StartsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+                    End: &nbsp;{{ .EndsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+                    Duration: {{ (.EndsAt.Sub .StartsAt).Truncate 1000000000 }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+                    {{ range .Labels.SortedPairs }}{{ .Name | title }}: {{ .Value }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />{{ end }}
+                    {{ range .Annotations.SortedPairs }}{{ .Name | title }}: {{ .Value }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />{{ end }}
+                  </td>
+                </tr>
+                {{ end }}
+              </table>
+            </td>
+          </tr>
+        </table>
+
+        <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; width: 100%; clear: both; color: #999; margin: 0; padding: 20px;">
+          <table width="100%" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+            <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+            </tr>
+          </table>
+        </div></div>
+    </td>
+    <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0;" valign="top"></td>
+  </tr>
+</table>
+
+</body>
+</html>
+
+{{ end }}
+`
+                        },
+                        ingress: { enabled: false },
+                        serviceMonitor: {
+                            relabelings: [
+                                { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
+                                { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
+                                { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
+                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "k3s-it-prd-infra-shared-01" },
+                                { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
+                                { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
+                            ]
+                        },
+                        alertmanagerSpec: {
+                            image: {
+                                registry: "swr.cn-east-3.myhuaweicloud.com",
+                                repository: "quay-io/alertmanager",
+                                tag: "v0.27.0"
+                            },
+                            logLevel: "warn",
+                            replicas: 1,
+                            storage: {
+                                volumeClaimTemplate: {
+                                    spec: {
+                                        storageClassName: "vsphere-san-sc",
+                                        resources: {
+                                            requests: {
+                                                storage: "3Gi"
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            externalUrl: "https://alertmanager-lgtm.home.local",
+                            resources: {
+                                limits: { cpu: "100m", memory: "64Mi" },
+                                requests: { cpu: "100m", memory: "64Mi" }
+                            },
+                            volumes: [
+                                {
+                                    name: "cst-timezone",
+                                    hostPath: {
+                                        path: "/usr/share/zoneinfo/PRC",
+                                        type: "File"
+                                    }
+                                }
+                            ],
+                            volumeMounts: [
+                                {
+                                    name: "cst-timezone",
+                                    mountPath: "/etc/localtime",
+                                    readOnly: true
+                                }
+                            ]
+                        }
+                    },
                     grafana: { enabled: false },
                     kubeApiServer: {
                         enabled: true,
@@ -1031,18 +1314,7 @@ const resources = [
                             }
                         }
                     },
-                    alertmanager: {
-                        persistentVolume: {
-                            enabled: true,
-                            size: "2Gi",
-                            storageClass: "vsphere-san-sc"
-                        },
-                        replicas: 1,
-                        resources: {
-                            limits: { cpu: "100m", memory: "128Mi" },
-                            requests: { cpu: "100m", memory: "128Mi" }
-                        }
-                    },
+                    alertmanager: { enabled: false },
                     compactor: {
                         persistentVolume: {
                             size: "7Gi",
@@ -1173,7 +1445,22 @@ const resources = [
                     },
                     nginx: { enabled: false },
                     admin_api: { enabled: false },
-                    gateway: { enabled: false }
+                    gateway: {
+                        enabledNonEnterprise: true,
+                        replicas: 1,
+                        resources: {
+                            limits: { cpu: "100m", memory: "128Mi" },
+                            requests: { cpu: "100m", memory: "128Mi" }
+                        },
+                        nginx: {
+                            verboseLogging: false,
+                            image: {
+                                registry: "swr.cn-east-3.myhuaweicloud.com",
+                                repository: "docker-io/nginx-unprivileged",
+                                tag: "1.27-alpine"
+                            }
+                        }
+                    }
                 }
             }
         ],
@@ -1225,6 +1512,33 @@ const resources = [
                                 {
                                     serviceName: "grafana",
                                     servicePort: 80,
+                                    resolveGranularity: "service"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            {
+                apiVersion: "apisix.apache.org/v2",
+                kind: "ApisixRoute",
+                metadata: {
+                    name: "alertmanager",
+                    namespace: "monitoring"
+                },
+                spec: {
+                    http: [
+                        {
+                            name: "root",
+                            match: {
+                                methods: ["GET", "HEAD", "POST", "PUT", "DELETE"],
+                                hosts: ["alertmanager-lgtm.home.local"],
+                                paths: ["/*"]
+                            },
+                            backends: [
+                                {
+                                    serviceName: "kubepromstack-alertmanager",
+                                    servicePort: 9093,
                                     resolveGranularity: "service"
                                 }
                             ]
