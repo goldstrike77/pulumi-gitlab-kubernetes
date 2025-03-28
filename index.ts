@@ -922,7 +922,7 @@ const resources = [
                                     }
                                 },
                                 {
-                                    name: "DS_MIMIR",
+                                    name: "DS_PROMETHEUS",
                                     type: "prometheus",
                                     access: "proxy",
                                     url: "http://mimir-query-frontend:8080/prometheus",
