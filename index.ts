@@ -761,6 +761,10 @@ SOFTWARE.
                         podLabels: podlabels,
                         auth_enabled: false,
                         tenants: [],
+                        server: {
+                            grpc_server_max_recv_msg_size: 524288000,
+                            grpc_server_max_send_msg_size: 524288000
+                        },
                         limits_config: {
                             ingestion_burst_size_mb: 64,
                             ingestion_rate_mb: 32,
@@ -846,8 +850,8 @@ SOFTWARE.
                     querier: {
                         replicas: 1,
                         resources: {
-                            limits: { cpu: "200m", memory: "256Mi" },
-                            requests: { cpu: "200m", memory: "256Mi" }
+                            limits: { cpu: "200m", memory: "512Mi" },
+                            requests: { cpu: "200m", memory: "512Mi" }
                         }
                     },
                     queryFrontend: {
@@ -1473,6 +1477,160 @@ SOFTWARE.
                                 tag: "1.27-alpine"
                             }
                         }
+                    }
+                }
+            },
+            {
+                namespace: "monitoring",
+                name: "kube-audit",
+                chart: "oci://harbor.home.local/helm-charts/vector",
+                version: "0.41.0",
+                values: {
+                    role: "Agent",
+                    image: {
+                        repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/vector",
+                        tag: "0.45.0-distroless-libc"
+                    },
+                    podLabels: podlabels,
+                    resources: {
+                        limits: { cpu: "200m", memory: "256Mi" },
+                        requests: { cpu: "200m", memory: "256Mi" }
+                    },
+                    nodeSelector: { "node-role.kubernetes.io/control-plane": "true" },
+                    tolerations: [{ key: "CriticalAddonsOnly", operator: "Exists" }],
+                    service: { enabled: false },
+                    customConfig: {
+                        data_dir: "/vector-data-dir",
+                        api: { enabled: false, address: "127.0.0.1:8686", playground: false },
+                        sources: { kubernetes_audit: { type: "file", max_line_bytes: 65536, include: ["/var/lib/rancher/rke2/server/logs/audit.log"] } },
+                        transforms: {
+                            kubernetes_audit_json: {
+                                type: "remap",
+                                inputs: ["kubernetes_audit"],
+                                source: `. = parse_json!(.message)`
+                            }
+                        },
+                        sinks: {
+                            kubernetes_logs_loki: {
+                                type: "loki",
+                                inputs: ["kubernetes_audit_json"],
+                                endpoint: "http://loki-distributor:3100",
+                                labels: { scrape_job: "kube-audit", cluster: "rke-it-prd-infra-shared-01" },
+                                compression: "none",
+                                healthcheck: { enabled: false },
+                                encoding: { codec: "json", except_fields: ["source_type"] },
+                                buffer: { type: "disk", max_size: 4294967296, when_full: "block" },
+                                batch: { max_events: 1024, timeout_secs: 3 }
+                            }
+                        }
+                    },
+                    extraVolumes: [
+                        {
+                            name: "varlibdockercontainers",
+                            hostPath: {
+                                path: "/var/lib/rancher/rke2/server/logs"
+                            }
+                        }
+                    ],
+                    extraVolumeMounts: [
+                        {
+                            name: "varlibdockercontainers",
+                            mountPath: "/var/lib/rancher/rke2/server/logs",
+                            readOnly: true
+                        }
+                    ],
+                    persistence: { hostPath: { path: "/var/lib/vector/kube-audit" } },
+                    podMonitor: {
+                        enabled: true,
+                        relabelings: [
+                            { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
+                            { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
+                            { sourceLabels: ["__meta_kubernetes_pod_label_project"], targetLabel: "project" },
+                            { sourceLabels: ["__meta_kubernetes_pod_label_group"], targetLabel: "group" },
+                            { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
+                            { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
+                        ]
+                    }
+                }
+            },
+            {
+                namespace: "monitoring",
+                name: "kube-pod",
+                chart: "oci://harbor.home.local/helm-charts/vector",
+                version: "0.41.0",
+                values: {
+                    role: "Agent",
+                    image: {
+                        repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/vector",
+                        tag: "0.45.0-distroless-libc"
+                    },
+                    podLabels: podlabels,
+                    resources: {
+                        limits: { cpu: "200m", memory: "256Mi" },
+                        requests: { cpu: "200m", memory: "256Mi" }
+                    },
+                    tolerations: [{ key: "CriticalAddonsOnly", operator: "Exists" }],
+                    service: { enabled: false },
+                    customConfig: {
+                        data_dir: "/vector-data-dir",
+                        api: { enabled: false, address: "127.0.0.1:8686", playground: false },
+                        sources: {
+                            kubernetes_logs: {
+                                type: "kubernetes_logs",
+                                max_line_bytes: 65536
+                            }
+                        },
+                        transforms: {
+                            kubernetes_remap: {
+                                type: "remap",
+                                inputs: ["kubernetes_logs"],
+                                source: `kubernetes = del(.kubernetes)
+file = del(.file)
+message = del(.message)
+kubernetes_labels = encode_json(kubernetes.pod_labels)
+kubernetes_labels = replace(kubernetes_labels, "app.kubernetes.io", "app_kubernetes_io")
+kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
+. = parse_json!(kubernetes_labels)
+.message = message
+.ip = kubernetes.pod_ip
+.container = kubernetes.container_name
+.node = kubernetes.pod_node_name
+.pod = kubernetes.pod_name
+.namespace = kubernetes.pod_namespace
+.timestamp = timestamp(.timestamp) ?? now()
+.cluster = "rke-it-prd-infra-shared-01"`
+                            },
+                            kubernetes_filter: {
+                                type: "filter",
+                                inputs: ["kubernetes_remap"],
+                                condition: '.app != "longhorn-manager" && .container != "metallb-speaker"'
+                            }
+                        },
+                        sinks: {
+                            kubernetes_logs_loki: {
+                                type: "loki",
+                                inputs: ["kubernetes_filter"],
+                                endpoint: "http://loki-distributor:3100",
+                                labels: { scrape_job: "kube-pod", cluster: "rke-it-prd-infra-shared-01" },
+                                compression: "none",
+                                healthcheck: { enabled: false },
+                                encoding: { codec: "json", except_fields: ["source_type"] },
+                                buffer: { type: "disk", max_size: 4294967296, when_full: "block" },
+                                batch: { max_events: 1024, timeout_secs: 3 }
+                            }
+                        }
+                    },
+                    persistence: { hostPath: { path: "/var/lib/vector/kube-pod" } },
+                    podMonitor: {
+                        enabled: true,
+                        relabelings: [
+                            { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
+                            { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
+                            { sourceLabels: ["__meta_kubernetes_pod_label_project"], targetLabel: "project" },
+                            { sourceLabels: ["__meta_kubernetes_pod_label_group"], targetLabel: "group" },
+                            { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
+                            { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
+                        ]
                     }
                 }
             }
