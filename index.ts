@@ -837,7 +837,8 @@ SOFTWARE.
                                     storageClass: "vsphere-san-sc"
                                 }
                             ]
-                        }
+                        },
+                        zoneAwareReplication: { enabled: false }
                     },
                     distributor: {
                         replicas: 3,
@@ -995,7 +996,8 @@ SOFTWARE.
                             enabled: true,
                             size: "7Gi",
                             storageClass: "vsphere-san-sc"
-                        }
+                        },
+                        zoneAwareReplication: { enabled: false }
                     },
                     metricsGenerator: {
                         enabled: true,
@@ -1241,7 +1243,7 @@ SOFTWARE.
                             check_for_updates: false,
                             reporting_enabled: false
                         },
-                        log: { mode: "console", level: "info" },
+                        log: { mode: "console", level: "warn" },
                         user: {
                             default_theme: "dark",
                             home_page: ""
@@ -1339,7 +1341,8 @@ SOFTWARE.
                         resources: {
                             limits: { cpu: "500m", memory: "1024Mi" },
                             requests: { cpu: "500m", memory: "1024Mi" }
-                        }
+                        },
+                        zoneAwareReplication: { enabled: false }
                     },
                     memcached: {
                         image: {
