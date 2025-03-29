@@ -776,8 +776,8 @@ SOFTWARE.
                             max_line_size_truncate: true,
                             query_timeout: "300s",
                             reject_old_samples: true,
-                            reject_old_samples_max_age: "120h",
-                            retention_period: "120h",
+                            reject_old_samples_max_age: "168h",
+                            retention_period: "168h",
                             split_queries_by_interval: "15m",
                             volume_enabled: true
                         },
@@ -838,7 +838,10 @@ SOFTWARE.
                                 }
                             ]
                         },
-                        zoneAwareReplication: { enabled: false }
+                        zoneAwareReplication: {
+                            enabled: true,
+                            topologyKey: "kubernetes.io/hostname"
+                        }
                     },
                     distributor: {
                         replicas: 3,
@@ -942,11 +945,11 @@ SOFTWARE.
                         image: { repository: "quay-io/k8s-sidecar" },
                         resources: {}
                     },
-                    "monitoring": {
-                        "serviceMonitor": {
-                            "enabled": false,
-                            "interval": "15s",
-                            "relabelings": [
+                    monitoring: {
+                        serviceMonitor: {
+                            enabled: true,
+                            interval: "60s",
+                            relabelings: [
                                 { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
                                 { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
                                 { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
@@ -955,8 +958,8 @@ SOFTWARE.
                                 { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
                                 { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
                             ],
-                            "metricsInstance": {
-                                "enabled": false
+                            metricsInstance: {
+                                enabled: true
                             }
                         }
                     },
@@ -997,7 +1000,10 @@ SOFTWARE.
                             size: "7Gi",
                             storageClass: "vsphere-san-sc"
                         },
-                        zoneAwareReplication: { enabled: false }
+                        zoneAwareReplication: {
+                            enabled: true,
+                            topologyKey: "kubernetes.io/hostname"
+                        }
                     },
                     metricsGenerator: {
                         enabled: true,
@@ -1101,7 +1107,7 @@ SOFTWARE.
                     },
                     metaMonitoring: {
                         serviceMonitor: {
-                            enabled: false,
+                            enabled: true,
                             relabelings: [
                                 { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
                                 { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
@@ -1142,7 +1148,7 @@ SOFTWARE.
                     },
                     podLabels: podlabels,
                     serviceMonitor: {
-                        enabled: false,
+                        enabled: true,
                         relabelings: [
                             { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
                             { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
@@ -1342,7 +1348,10 @@ SOFTWARE.
                             limits: { cpu: "500m", memory: "1024Mi" },
                             requests: { cpu: "500m", memory: "1024Mi" }
                         },
-                        zoneAwareReplication: { enabled: false }
+                        zoneAwareReplication: {
+                            enabled: true,
+                            topologyKey: "kubernetes.io/hostname"
+                        }
                     },
                     memcached: {
                         image: {
@@ -1456,12 +1465,15 @@ SOFTWARE.
                             size: "31Gi",
                             storageClass: "vsphere-san-sc"
                         },
-                        replicas: 1,
+                        replicas: 3,
                         resources: {
                             limits: { cpu: "500m", memory: "1024Mi" },
                             requests: { cpu: "500m", memory: "1024Mi" }
                         },
-                        zoneAwareReplication: { enabled: false }
+                        zoneAwareReplication: {
+                            enabled: true,
+                            topologyKey: "kubernetes.io/hostname"
+                        }
                     },
                     nginx: { enabled: false },
                     admin_api: { enabled: false },
@@ -1480,6 +1492,23 @@ SOFTWARE.
                                 tag: "1.27-alpine"
                             }
                         }
+                    },
+                    metaMonitoring: {
+                        serviceMonitor: {
+                            enabled: true,
+                            relabelings: [
+                                { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_project"], targetLabel: "project" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_group"], targetLabel: "group" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
+                            ],
+                            interval: "60s",
+                            scrapeTimeout: "30s"
+                        },
+                        prometheusRule: { enabled: false }
                     }
                 }
             },
@@ -1725,8 +1754,6 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
 ]
 
 const namespace = new k8s.core.v1.Namespace('Namespace', { resources: resources })
-const secret = new k8s.core.v1.Secret('Secret', { resources: resources }, { dependsOn: [namespace] });
 const configmap = new k8s.core.v1.ConfigMap('ConfigMap', { resources: resources }, { dependsOn: [namespace] });
-const release = new k8s.helm.v3.Release('Release', { resources: resources }, { dependsOn: [secret, configmap] });
-const configfile = new k8s.yaml.ConfigFile('ConfigFile', { resources: resources }, { dependsOn: [release] });
+const release = new k8s.helm.v3.Release('Release', { resources: resources }, { dependsOn: [configmap] });
 const customresource = new k8s.apiextensions.CustomResource('CustomResource', { resources: resources }, { dependsOn: [namespace] });
