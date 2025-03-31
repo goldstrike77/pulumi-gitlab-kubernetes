@@ -1667,6 +1667,108 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
                 }
             }
         ],
+        deployment: [
+            {
+                metadata: {
+                    name: "lgtm-observability",
+                    namespace: "monitoring"
+                },
+                spec: {
+                    replicas: 1,
+                    selector: {
+                        matchLabels: {
+                            app: "lgtm-observability"
+                        }
+                    },
+                    template: {
+                        metadata: {
+                            labels: {
+                                app: "lgtm-observability",
+                                customer: "it",
+                                environment: "prd",
+                                project: "container",
+                                group: "rke-it-prd-infra-shared-01",
+                                datacenter: "cn-north",
+                                domain: "local"
+                            },
+                            annotations: {}
+                        },
+                        spec: {
+                            containers: [
+                                {
+                                    name: "lgtm-observability",
+                                    image: "registry.cn-hangzhou.aliyuncs.com/goldenimage/lgtm-observability:v0.1",
+                                    resources: {
+                                        limits: { cpu: "200m", memory: "128Mi" },
+                                        requests: { cpu: "200m", memory: "128Mi" }
+                                    },
+                                    args: ["npm", "run", "index-with-tracer"],
+                                    ports: [
+                                        {
+                                            containerPort: 8080,
+                                            protocol: "TCP"
+                                        },
+                                        {
+                                            containerPort: 9464,
+                                            protocol: "TCP"
+                                        },
+                                    ],
+                                    env: [
+                                        { name: "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", value: "${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT}" },
+                                    ],
+                                    livenessProbe: {
+                                        failureThreshold: 10,
+                                        tcpSocket: {
+                                            port: 8080
+                                        },
+                                        initialDelaySeconds: 60,
+                                        periodSeconds: 10,
+                                        successThreshold: 1,
+                                        timeoutSeconds: 30
+                                    },
+                                    readinessProbe: {
+                                        failureThreshold: 3,
+                                        tcpSocket: {
+                                            port: 8080
+                                        },
+                                        initialDelaySeconds: 60,
+                                        periodSeconds: 10,
+                                        successThreshold: 1,
+                                        timeoutSeconds: 10
+                                    },
+                                    imagePullPolicy: "IfNotPresent"
+                                }
+                            ],
+                            restartPolicy: "Always"
+                        }
+                    }
+                }
+            }
+        ],
+        service: [
+            {
+                metadata: {
+                    labels: {
+                        app: "lgtm-observability"
+                    },
+                    name: "lgtm-observability",
+                    namespace: "monitoring"
+                },
+                spec: {
+                    selector: {
+                        app: "lgtm-observability"
+                    },
+                    ports: [
+                        {
+                            name: "lgtm-observability",
+                            port: 8080,
+                            protocol: "TCP",
+                            targetPort: 8080
+                        }
+                    ]
+                }
+            }
+        ],
         customresource: [
             {
                 apiVersion: "apisix.apache.org/v2",
@@ -1748,6 +1850,69 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
                         }
                     ]
                 }
+            },
+            {
+                apiVersion: "apisix.apache.org/v2",
+                kind: "ApisixRoute",
+                metadata: {
+                    name: "lgtm-observability",
+                    namespace: "monitoring"
+                },
+                spec: {
+                    http: [
+                        {
+                            name: "root",
+                            match: {
+                                methods: ["GET", "HEAD"],
+                                hosts: ["lgtm-observability.home.local"],
+                                paths: ["/*"]
+                            },
+                            backends: [
+                                {
+                                    serviceName: "lgtm-observability",
+                                    servicePort: 8080,
+                                    resolveGranularity: "service"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            {
+                apiVersion: "monitoring.coreos.com/v1",
+                kind: "PodMonitor",
+                metadata: {
+                    name: "lgtm-observability",
+                    namespace: "monitoring"
+                },
+                spec: {
+                    podMetricsEndpoints: [
+                        {
+                            interval: "60s",
+                            scrapeTimeout: "30s",
+                            scheme: "http",
+                            port: "9464",
+                            targetPort: http,
+                            relabelings: [
+                                { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
+                                { action: "replace", replacement: "it", sourceLabels: ["__address__"], targetLabel: "customer" },
+                                { action: "replace", replacement: "prd", sourceLabels: ["__address__"], targetLabel: "environment" },
+                                { action: "replace", replacement: "container", sourceLabels: ["__address__"], targetLabel: "project" },
+                                { action: "replace", replacement: "rke-it-prd-infra-shared-01", sourceLabels: ["__address__"], targetLabel: "group" },
+                                { action: "replace", replacement: "cn-north", sourceLabels: ["__address__"], targetLabel: "datacenter" },
+                                { action: "replace", replacement: "local", sourceLabels: ["__address__"], targetLabel: "domain" }
+                            ]
+                        }
+                    ],
+                    namespaceSelector: {
+                        matchNames: ["monitoring"]
+                    },
+                    selector: {
+                        matchLabels: {
+                            app: "lgtm-observability"
+                        }
+                    }
+                }
             }
         ]
     }
@@ -1756,4 +1921,6 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
 const namespace = new k8s.core.v1.Namespace('Namespace', { resources: resources })
 const configmap = new k8s.core.v1.ConfigMap('ConfigMap', { resources: resources }, { dependsOn: [namespace] });
 const release = new k8s.helm.v3.Release('Release', { resources: resources }, { dependsOn: [configmap] });
+const deployment = new k8s.apps.v1.Deployment('Deployment', { resources: resources }, { dependsOn: [namespace] });
+const service = new k8s.core.v1.Service('Service', { resources: resources }, { dependsOn: [namespace] });
 const customresource = new k8s.apiextensions.CustomResource('CustomResource', { resources: resources }, { dependsOn: [namespace] });
