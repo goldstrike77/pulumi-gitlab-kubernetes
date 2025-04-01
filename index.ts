@@ -1670,20 +1670,20 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
         deployment: [
             {
                 metadata: {
-                    name: "lgtm-observability",
+                    name: "observability-lgtm",
                     namespace: "monitoring"
                 },
                 spec: {
                     replicas: 1,
                     selector: {
                         matchLabels: {
-                            app: "lgtm-observability"
+                            app: "observability-lgtm"
                         }
                     },
                     template: {
                         metadata: {
                             labels: {
-                                app: "lgtm-observability",
+                                app: "observability-lgtm",
                                 customer: "it",
                                 environment: "prd",
                                 project: "container",
@@ -1696,8 +1696,8 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
                         spec: {
                             containers: [
                                 {
-                                    name: "lgtm-observability",
-                                    image: "registry.cn-hangzhou.aliyuncs.com/goldenimage/lgtm-observability:v0.1",
+                                    name: "observability-lgtm",
+                                    image: "registry.cn-hangzhou.aliyuncs.com/goldenimage/observability-lgtm:v0.1@sha256:fe82b67c9fe75476fb5e19081c7c75fa25a951a0ce18e90a9c278cf93581f367",
                                     resources: {
                                         limits: { cpu: "200m", memory: "128Mi" },
                                         requests: { cpu: "200m", memory: "128Mi" }
@@ -1710,11 +1710,12 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
                                         },
                                         {
                                             containerPort: 9464,
+                                            name: "prometheus",
                                             protocol: "TCP"
                                         },
                                     ],
                                     env: [
-                                        { name: "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", value: "${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT}" },
+                                        { name: "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", value: "http://tempo-distributor:4318/v1/traces" },
                                     ],
                                     livenessProbe: {
                                         failureThreshold: 10,
@@ -1749,18 +1750,18 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
             {
                 metadata: {
                     labels: {
-                        app: "lgtm-observability"
+                        app: "observability-lgtm"
                     },
-                    name: "lgtm-observability",
+                    name: "observability-lgtm",
                     namespace: "monitoring"
                 },
                 spec: {
                     selector: {
-                        app: "lgtm-observability"
+                        app: "observability-lgtm"
                     },
                     ports: [
                         {
-                            name: "lgtm-observability",
+                            name: "observability-lgtm",
                             port: 8080,
                             protocol: "TCP",
                             targetPort: 8080
@@ -1855,7 +1856,7 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
                 apiVersion: "apisix.apache.org/v2",
                 kind: "ApisixRoute",
                 metadata: {
-                    name: "lgtm-observability",
+                    name: "observability-lgtm",
                     namespace: "monitoring"
                 },
                 spec: {
@@ -1864,12 +1865,12 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
                             name: "root",
                             match: {
                                 methods: ["GET", "HEAD"],
-                                hosts: ["lgtm-observability.home.local"],
+                                hosts: ["observability-lgtm.home.local"],
                                 paths: ["/*"]
                             },
                             backends: [
                                 {
-                                    serviceName: "lgtm-observability",
+                                    serviceName: "observability-lgtm",
                                     servicePort: 8080,
                                     resolveGranularity: "service"
                                 }
@@ -1882,7 +1883,7 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
                 apiVersion: "monitoring.coreos.com/v1",
                 kind: "PodMonitor",
                 metadata: {
-                    name: "lgtm-observability",
+                    name: "observability-lgtm",
                     namespace: "monitoring"
                 },
                 spec: {
@@ -1891,8 +1892,7 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
                             interval: "60s",
                             scrapeTimeout: "30s",
                             scheme: "http",
-                            port: "9464",
-                            targetPort: http,
+                            targetPort: "prometheus",
                             relabelings: [
                                 { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
                                 { action: "replace", replacement: "it", sourceLabels: ["__address__"], targetLabel: "customer" },
@@ -1909,7 +1909,7 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
                     },
                     selector: {
                         matchLabels: {
-                            app: "lgtm-observability"
+                            app: "observability-lgtm"
                         }
                     }
                 }
@@ -1921,6 +1921,6 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
 const namespace = new k8s.core.v1.Namespace('Namespace', { resources: resources })
 const configmap = new k8s.core.v1.ConfigMap('ConfigMap', { resources: resources }, { dependsOn: [namespace] });
 const release = new k8s.helm.v3.Release('Release', { resources: resources }, { dependsOn: [configmap] });
-const deployment = new k8s.apps.v1.Deployment('Deployment', { resources: resources }, { dependsOn: [namespace] });
-const service = new k8s.core.v1.Service('Service', { resources: resources }, { dependsOn: [namespace] });
-const customresource = new k8s.apiextensions.CustomResource('CustomResource', { resources: resources }, { dependsOn: [namespace] });
+const deployment = new k8s.apps.v1.Deployment('Deployment', { resources: resources }, { dependsOn: [release] });
+const service = new k8s.core.v1.Service('Service', { resources: resources }, { dependsOn: [deployment, release] });
+const customresource = new k8s.apiextensions.CustomResource('CustomResource', { resources: resources }, { dependsOn: [service] });
