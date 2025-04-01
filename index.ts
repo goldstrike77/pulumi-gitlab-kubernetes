@@ -825,8 +825,8 @@ SOFTWARE.
                     ingester: {
                         replicas: 3,
                         resources: {
-                            limits: { cpu: "200m", memory: "256Mi" },
-                            requests: { cpu: "200m", memory: "256Mi" }
+                            limits: { cpu: "500m", memory: "1024Mi" },
+                            requests: { cpu: "500m", memory: "1024Mi" }
                         },
                         persistence: {
                             enabled: true,
@@ -992,8 +992,8 @@ SOFTWARE.
                     ingester: {
                         replicas: 3,
                         resources: {
-                            limits: { cpu: "200m", memory: "256Mi" },
-                            requests: { cpu: "200m", memory: "256Mi" }
+                            limits: { cpu: "500m", memory: "1024Mi" },
+                            requests: { cpu: "500m", memory: "1024Mi" }
                         },
                         persistence: {
                             enabled: true,
@@ -1697,7 +1697,7 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
                             containers: [
                                 {
                                     name: "observability-lgtm",
-                                    image: "registry.cn-hangzhou.aliyuncs.com/goldenimage/observability-lgtm:v0.1@sha256:fe82b67c9fe75476fb5e19081c7c75fa25a951a0ce18e90a9c278cf93581f367",
+                                    image: "registry.cn-hangzhou.aliyuncs.com/goldenimage/observability-lgtm:v0.1@sha256:f4d372545be6778ed4f2fa3e9bec70cf54c85cf77fcdc0d2e81e39983ea48f5e",
                                     resources: {
                                         limits: { cpu: "200m", memory: "128Mi" },
                                         requests: { cpu: "200m", memory: "128Mi" }
