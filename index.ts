@@ -882,8 +882,8 @@ SOFTWARE.
                     compactor: {
                         replicas: 1,
                         resources: {
-                            limits: { cpu: "200m", memory: "256Mi" },
-                            requests: { cpu: "200m", memory: "256Mi" }
+                            limits: { cpu: "500m", memory: "1024Mi" },
+                            requests: { cpu: "500m", memory: "1024Mi" }
                         },
                         persistence: {
                             enabled: true,
@@ -992,13 +992,18 @@ SOFTWARE.
                     ingester: {
                         replicas: 3,
                         resources: {
-                            limits: { cpu: "500m", memory: "1024Mi" },
-                            requests: { cpu: "500m", memory: "1024Mi" }
+                            limits: { cpu: "1000m", memory: "4096Mi" },
+                            requests: { cpu: "1000m", memory: "4096Mi" }
                         },
                         persistence: {
                             enabled: true,
                             size: "7Gi",
                             storageClass: "vsphere-san-sc"
+                        },
+                        config: {
+                            flush_check_period: "5s",
+                            trace_idle_period: "5s",
+                            flush_all_on_shutdown: true
                         },
                         zoneAwareReplication: {
                             enabled: true,
@@ -1021,27 +1026,28 @@ SOFTWARE.
                     distributor: {
                         replicas: 3,
                         resources: {
-                            limits: { cpu: "200m", memory: "256Mi" },
-                            requests: { cpu: "200m", memory: "256Mi" }
+                            limits: { cpu: "200m", memory: "2048Mi" },
+                            requests: { cpu: "200m", memory: "2048Mi" }
                         }
                     },
                     compactor: {
                         replicas: 1,
                         resources: {
-                            limits: { cpu: "200m", memory: "256Mi" },
-                            requests: { cpu: "200m", memory: "256Mi" }
+                            limits: { cpu: "1000m", memory: "4096Mi" },
+                            requests: { cpu: "1000m", memory: "4096Mi" }
                         },
                         config: {
                             compaction: {
-                                block_retention: "168h"
+                                block_retention: "168h",
+                                compaction_cycle: "60s"
                             }
                         }
                     },
                     querier: {
                         replicas: 1,
                         resources: {
-                            limits: { cpu: "200m", memory: "256Mi" },
-                            requests: { cpu: "200m", memory: "256Mi" }
+                            limits: { cpu: "200m", memory: "1024Mi" },
+                            requests: { cpu: "200m", memory: "1024Mi" }
                         }
                     },
                     queryFrontend: {
@@ -1084,14 +1090,14 @@ SOFTWARE.
                     },
                     memcached: {
                         enabled: true,
-                        extraArgs: ["-m 1000", "-I 2m", "-v"],
+                        extraArgs: ["-m 200", "-I 2m", "-v"],
                         image: {
                             repository: "goldenimage/memcached",
                             tag: "1.6.38-alpine"
                         },
                         resources: {
-                            limits: { cpu: "200m", memory: "1024Mi" },
-                            requests: { cpu: "200m", memory: "1024Mi" }
+                            limits: { cpu: "100m", memory: "256Mi" },
+                            requests: { cpu: "100m", memory: "256Mi" }
                         }
                     },
                     memcachedExporter: {
@@ -1101,8 +1107,8 @@ SOFTWARE.
                             tag: "v0.15.2"
                         },
                         resources: {
-                            limits: { cpu: "100m", memory: "128Mi" },
-                            requests: { cpu: "100m", memory: "128Mi" }
+                            limits: { cpu: "50m", memory: "64Mi" },
+                            requests: { cpu: "50m", memory: "64Mi" }
                         }
                     },
                     metaMonitoring: {
@@ -1697,10 +1703,10 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
                             containers: [
                                 {
                                     name: "observability-lgtm",
-                                    image: "registry.cn-hangzhou.aliyuncs.com/goldenimage/observability-lgtm:v0.1@sha256:f4d372545be6778ed4f2fa3e9bec70cf54c85cf77fcdc0d2e81e39983ea48f5e",
+                                    image: "registry.cn-hangzhou.aliyuncs.com/goldenimage/observability-lgtm:v0.1@sha256:bb5dfd51dc75ec9ff92cb3fdce049bbedc9569e54c3a5d514eb4f1f574f7e74d",
                                     resources: {
-                                        limits: { cpu: "200m", memory: "128Mi" },
-                                        requests: { cpu: "200m", memory: "128Mi" }
+                                        limits: { cpu: "2000m", memory: "256Mi" },
+                                        requests: { cpu: "2000m", memory: "256Mi" }
                                     },
                                     args: ["npm", "run", "index-with-tracer"],
                                     ports: [
@@ -1715,7 +1721,12 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
                                         },
                                     ],
                                     env: [
+                                        { name: "ENVIRONMENT", value: "prd" },
+                                        { name: "OTEL_SERVICE_NAME", value: "observability-lgtm" },
+                                        { name: "OTEL_RESOURCE_ATTRIBUTES", value: "environment=prd" },
                                         { name: "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", value: "http://tempo-distributor:4318/v1/traces" },
+                                        { name: "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT", value: "http://loki-distributor:3100" }
+
                                     ],
                                     livenessProbe: {
                                         failureThreshold: 10,
@@ -1900,7 +1911,8 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
                                 { action: "replace", replacement: "container", sourceLabels: ["__address__"], targetLabel: "project" },
                                 { action: "replace", replacement: "rke-it-prd-infra-shared-01", sourceLabels: ["__address__"], targetLabel: "group" },
                                 { action: "replace", replacement: "cn-north", sourceLabels: ["__address__"], targetLabel: "datacenter" },
-                                { action: "replace", replacement: "local", sourceLabels: ["__address__"], targetLabel: "domain" }
+                                { action: "replace", replacement: "local", sourceLabels: ["__address__"], targetLabel: "domain" },
+                                { action: "replace", replacement: "observability-lgtm", sourceLabels: ["__address__"], targetLabel: "service" }
                             ]
                         }
                     ],
