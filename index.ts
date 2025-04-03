@@ -23,7 +23,7 @@ const resources = [
                     labels: {
                         "pod-security.kubernetes.io/enforce": "privileged",
                         "pod-security.kubernetes.io/audit": "privileged",
-                        "pod-security.kubernetes.io/warn": "privileged"
+                        "pod-security.kubernetes.io/info": "privileged"
                     }
                 },
                 spec: {}
@@ -224,7 +224,7 @@ Duration: {{ (.EndsAt.Sub .StartsAt).Truncate 1000000000 }}
 {{ end }}{{ range .Annotations.SortedPairs }}{{ .Name | title }}: {{ .Value }}{{ end }}
 {{ end }}{{ end }}      
 {{ define "wechat.default.message" }}{{ if gt (len .Alerts.Firing) 0 -}}
-WARNING ☢
+infoING ☢
 {{ template "__text_alert_firing_list" .Alerts.Firing }}
 {{- end }}{{ if gt (len .Alerts.Resolved) 0 -}}
 RESOLVED ❀
@@ -290,7 +290,7 @@ SOFTWARE.
                 {{ if gt (len .Alerts.Firing) 0 }}
                 <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
                   <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                    <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; color: #ff0000; margin: 0;">[{{ .Alerts.Firing | len }}] WARNING ☢</strong>
+                    <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; color: #ff0000; margin: 0;">[{{ .Alerts.Firing | len }}] infoING ☢</strong>
  
                   </td>
                 </tr>
@@ -372,7 +372,7 @@ SOFTWARE.
                                 repository: "quay-io/alertmanager",
                                 tag: "v0.27.0"
                             },
-                            logLevel: "warn",
+                            logLevel: "info",
                             replicas: 1,
                             storage: {
                                 volumeClaimTemplate: {
@@ -553,7 +553,7 @@ SOFTWARE.
                             }
                         },
                         podLabels: podlabels,
-                        logLevel: "warn",
+                        logLevel: "info",
                         serviceMonitor: {
                             relabelings: [
                                 { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
@@ -619,7 +619,7 @@ SOFTWARE.
                             retention: "2h",
                             retentionSize: "4096MB",
                             replicas: 1,
-                            logLevel: "warn",
+                            logLevel: "info",
                             remoteWrite: [
                                 {
                                     url: "http://mimir-distributor:8080/api/v1/push",
@@ -1033,8 +1033,8 @@ SOFTWARE.
                     compactor: {
                         replicas: 1,
                         resources: {
-                            limits: { cpu: "1000m", memory: "4096Mi" },
-                            requests: { cpu: "1000m", memory: "4096Mi" }
+                            limits: { cpu: "2000m", memory: "4096Mi" },
+                            requests: { cpu: "2000m", memory: "4096Mi" }
                         },
                         config: {
                             compaction: {
@@ -1072,7 +1072,7 @@ SOFTWARE.
                         },
                         opencensus: { enabled: true }
                     },
-                    server: { logLevel: "warn" },
+                    server: { logLevel: "info" },
                     storage: {
                         trace: {
                             backend: "s3",
@@ -1255,7 +1255,7 @@ SOFTWARE.
                             check_for_updates: false,
                             reporting_enabled: false
                         },
-                        log: { mode: "console", level: "warn" },
+                        log: { mode: "console", level: "info" },
                         user: {
                             default_theme: "dark",
                             home_page: ""
@@ -1322,7 +1322,8 @@ SOFTWARE.
                             },
                             limits: {
                                 compactor_blocks_retention_period: "168h",
-                                max_label_names_per_series: 50
+                                max_label_names_per_series: 50,
+                                max_global_series_per_user: 1000000
                             }
                         }
                     },
