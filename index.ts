@@ -29,102 +29,40 @@ const resources = [
                 spec: {}
             }
         ],
-        configmap: [
-            {
-                metadata: {
-                    name: "grafana-dashboards-mysql",
-                    namespace: "monitoring",
-                    annotations: {},
-                    labels: {
-                        grafana_dashboard: ""
-                    }
-                },
-                data: {
-                    "MySQL_Overview.json": fs.readFileSync('./dashboards/database/MySQL_Overview.json', 'utf8')
-                }
-            },
-            {
-                metadata: {
-                    name: "grafana-dashboards-postgres",
-                    namespace: "monitoring",
-                    annotations: {},
-                    labels: {
-                        grafana_dashboard: ""
-                    }
-                },
-                data: {
-                    "PostgreSQL_Overview.json": fs.readFileSync('./dashboards/database/PostgreSQL_Overview.json', 'utf8')
-                }
-            },
-            {
-                metadata: {
-                    name: "grafana-dashboards-universal",
-                    namespace: "monitoring",
-                    annotations: {},
-                    labels: {
-                        grafana_dashboard: ""
-                    }
-                },
-                data: {
-                    "WebSite_Overview.json": fs.readFileSync('./dashboards/universal/WebSite_Overview.json', 'utf8'),
-                    "Redis_Overview.json": fs.readFileSync('./dashboards/universal/Redis_Overview.json', 'utf8'),
-                    "Memcached_Overview.json": fs.readFileSync('./dashboards/universal/Memcached_Overview.json', 'utf8'),
-                    "Loki_Kubernetes_Logs.json": fs.readFileSync('./dashboards/universal/Loki_Kubernetes_Logs.json', 'utf8')
-                }
-            },
-            {
-                metadata: {
-                    name: "grafana-dashboards-platform",
-                    namespace: "monitoring",
-                    annotations: {},
-                    labels: {
-                        grafana_dashboard: ""
-                    }
-                },
-                data: {
-                    "Kubernetes_Cluster.json": fs.readFileSync('./dashboards/platform/Kubernetes_Cluster.json', 'utf8'),
-                    "VMware_vSphere_Overview.json": fs.readFileSync('./dashboards/platform/VMware_vSphere_Overview.json', 'utf8')
-                }
-            },
-            {
-                metadata: {
-                    name: "grafana-dashboards-operatingsystem",
-                    namespace: "monitoring",
-                    annotations: {},
-                    labels: {
-                        grafana_dashboard: ""
-                    }
-                },
-                data: {
-                    "Linux_System_Overview.json": fs.readFileSync('./dashboards/operatingsystem/Linux_System_Overview.json', 'utf8'),
-                    "Linux_Disk_Performance.json": fs.readFileSync('./dashboards/operatingsystem/Linux_Disk_Performance.json', 'utf8'),
-                    "Linux_Network_Overview.json": fs.readFileSync('./dashboards/operatingsystem/Linux_Network_Overview.json', 'utf8'),
-                    "Linux_Disk_Space.json": fs.readFileSync('./dashboards/operatingsystem/Linux_Disk_Space.json', 'utf8')
-                }
-            },
-            {
-                metadata: {
-                    name: "grafana-dashboards-others",
-                    namespace: "monitoring",
-                    annotations: {},
-                    labels: {
-                        grafana_dashboard: ""
-                    }
-                },
-                data: {
-                    "Cross_Server_Graphs.json": fs.readFileSync('./dashboards/others/Cross_Server_Graphs.json', 'utf8')
-                }
-            }
-        ],
+        configmap: [],
         release: [
             {
                 namespace: "monitoring",
                 name: "kube-prometheus-stack",
                 chart: "oci://harbor.home.local/helm-charts/kube-prometheus-stack",
-                version: "69.8.2",
+                version: "70.4.1",
                 values: {
-                    fullnameOverride: "kubepromstack",
+                    //fullnameOverride: "kubepromstack",
+                    crds: {
+                        enabled: true,
+                        upgradeJob: {
+                            enabled: true,
+                            forceConflicts: true,
+                            image: {
+                                busybox: {
+                                    repository: "docker-io/busybox",
+                                    tag: "1.36.1"
+                                },
+                                kubectl: {
+                                    repository: "docker-io/kubectl",
+                                    tag: "1.31.3-debian-12-r1"
+                                }
+                            },
+                            resources: {
+                                limits: { cpu: "100m", memory: "64Mi" },
+                                requests: { cpu: "100m", memory: "64Mi" }
+                            }
+                        }
+                    },
                     defaultRules: { create: false },
+                    global: {
+                        imageRegistry: "swr.cn-east-3.myhuaweicloud.com"
+                    },
                     alertmanager: {
                         enabled: true,
                         config: {
@@ -368,9 +306,8 @@ SOFTWARE.
                         },
                         alertmanagerSpec: {
                             image: {
-                                registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/alertmanager",
-                                tag: "v0.27.0"
+                                tag: "v0.28.1"
                             },
                             logLevel: "info",
                             replicas: 1,
@@ -469,7 +406,6 @@ SOFTWARE.
                     "kube-state-metrics": {
                         fullnameOverride: "kube-state-metrics",
                         image: {
-                            registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "gcr-io/kube-state-metrics",
                             tag: "v2.15.0"
                         },
@@ -539,16 +475,14 @@ SOFTWARE.
                         admissionWebhooks: {
                             enabled: true,
                             image: {
-                                registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/admission-webhook",
-                                tag: "v0.80.1"
+                                tag: "v0.81.0"
                             },
                             patch: {
                                 enabled: true,
                                 image: {
-                                    registry: "swr.cn-east-3.myhuaweicloud.com",
                                     repository: "gcr-io/kube-webhook-certgen",
-                                    tag: "v1.5.1"
+                                    tag: "v1.5.2"
                                 }
                             }
                         },
@@ -570,15 +504,13 @@ SOFTWARE.
                             requests: { cpu: "100m", memory: "128Mi" }
                         },
                         image: {
-                            registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "quay-io/prometheus-operator",
-                            tag: "v0.80.1"
+                            tag: "v0.81.0"
                         },
                         prometheusConfigReloader: {
                             image: {
-                                registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/prometheus-config-reloader",
-                                tag: "v0.80.1"
+                                tag: "v0.81.0"
                             },
                             resources: {
                                 limits: { cpu: "200m", memory: "64Mi" },
@@ -601,12 +533,10 @@ SOFTWARE.
                             ]
                         },
                         prometheusSpec: {
-                            disableCompaction: true,
                             scrapeInterval: "60s",
                             scrapeTimeout: "30s",
                             evaluationInterval: "60s",
                             image: {
-                                registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/prometheus",
                                 tag: "v3.2.1"
                             },
@@ -618,6 +548,10 @@ SOFTWARE.
                             probeSelectorNilUsesHelmValues: false,
                             retention: "2h",
                             retentionSize: "4096MB",
+                            tsdb: {
+                                outOfOrderTimeWindow: "30m"
+                            },
+                            walCompression: false,
                             replicas: 1,
                             logLevel: "info",
                             remoteWrite: [
@@ -649,99 +583,36 @@ SOFTWARE.
                                     regex: "prometheus|cluster",
                                     action: "labeldrop"
                                 }
-                            ]
-                        }
-                    }
-                }
-            },
-            {
-                namespace: "monitoring",
-                name: "prometheus-blackbox-exporter",
-                chart: "oci://harbor.home.local/helm-charts/prometheus-blackbox-exporter",
-                version: "9.3.0",
-                values: {
-                    fullnameOverride: "blackbox-exporter",
-                    image: {
-                        registry: "swr.cn-east-3.myhuaweicloud.com",
-                        repository: "quay-io/blackbox-exporter",
-                        tag: "v0.26.0"
-                    },
-                    config: {
-                        modules: {
-                            http_2xx: {
-                                prober: "http",
-                                timeout: "5s",
-                                http: {
-                                    valid_http_versions: ["HTTP/1.1", "HTTP/2.0"],
-                                    valid_status_codes: [],
-                                    method: "GET",
-                                    headers: {
-                                        "Accept-Language": "en-US"
-                                    },
-                                    no_follow_redirects: false,
-                                    fail_if_ssl: false,
-                                    fail_if_not_ssl: false,
-                                    tls_config: { insecure_skip_verify: true },
-                                    preferred_ip_protocol: "ip4",
-                                    ip_protocol_fallback: false
-                                }
-                            },
-                            http_post_2xx: {
-                                prober: "http",
-                                timeout: "5s",
-                                http: {
-                                    valid_http_versions: ["HTTP/1.1", "HTTP/2.0"],
-                                    valid_status_codes: [],
-                                    method: "POST",
-                                    headers: {
-                                        "Accept-Language": "en-US",
-                                        "Content-Type": "application/json"
-                                    },
-                                    body: "{}",
-                                    no_follow_redirects: false,
-                                    fail_if_ssl: false,
-                                    fail_if_not_ssl: false,
-                                    tls_config: { insecure_skip_verify: true },
-                                    preferred_ip_protocol: "ip4",
-                                    ip_protocol_fallback: false
+                            ],
+                            additionalConfig: {
+                                otlp: {
+                                    keepIdentifyingResourceAttributes: true,
+                                    translationStrategy: "NoUTF8EscapingWithSuffixes",
+                                    promoteResourceAttributes: [
+                                        "service.instance.id",
+                                        "service.name",
+                                        "service.namespace",
+                                        "deployment.environment.name",
+                                        "service.version",
+                                        "cloud.availability_zone",
+                                        "cloud.region",
+                                        "container.name",
+                                        "deployment.environment",
+                                        "k8s.cluster.name",
+                                        "k8s.container.name",
+                                        "k8s.cronjob.name",
+                                        "k8s.daemonset.name",
+                                        "k8s.deployment.name",
+                                        "k8s.job.name",
+                                        "k8s.namespace.name",
+                                        "k8s.pod.name",
+                                        "k8s.replicaset.name",
+                                        "k8s.statefulset.name"
+                                    ]
                                 }
                             }
                         }
-                    },
-                    securityContext: {
-                        runAsUser: 1000,
-                        runAsGroup: 1000,
-                        readOnlyRootFilesystem: true,
-                        runAsNonRoot: true,
-                        allowPrivilegeEscalation: false,
-                        capabilities: { drop: ["ALL"] },
-                        seccompProfile: { type: "RuntimeDefault" }
-                    },
-                    resources: {
-                        limits: { cpu: "100m", memory: "64Mi" },
-                        requests: { cpu: "100m", memory: "64Mi" }
-                    },
-                    pod: {
-                        labels: podlabels,
-                    },
-                    replicas: 1,
-                    serviceMonitor: {
-                        selfMonitor: {
-                            enabled: true,
-                            additionalRelabeling: [
-                                { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
-                                { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
-                                { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
-                                { sourceLabels: ["__meta_kubernetes_pod_label_project"], targetLabel: "project" },
-                                { sourceLabels: ["__meta_kubernetes_pod_label_group"], targetLabel: "group" },
-                                { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
-                                { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
-                            ],
-                            interval: "60s",
-                            scrapeTimeout: "30s"
-                        }
-                    },
-                    prometheusRule: { enabled: false }
+                    }
                 }
             },
             {
@@ -838,10 +709,7 @@ SOFTWARE.
                                 }
                             ]
                         },
-                        zoneAwareReplication: {
-                            enabled: true,
-                            topologyKey: "kubernetes.io/hostname"
-                        }
+                        zoneAwareReplication: { enabled: true }
                     },
                     distributor: {
                         replicas: 3,
@@ -1322,8 +1190,11 @@ SOFTWARE.
                             },
                             limits: {
                                 compactor_blocks_retention_period: "168h",
+                                ingestion_burst_size: 2000000,
+                                ingestion_rate: 100000,
+                                max_global_series_per_user: 1000000,
                                 max_label_names_per_series: 50,
-                                max_global_series_per_user: 1000000
+                                max_query_parallelism: 30
                             }
                         }
                     },
@@ -1518,270 +1389,10 @@ SOFTWARE.
                         prometheusRule: { enabled: false }
                     }
                 }
-            },
-            {
-                namespace: "monitoring",
-                name: "kube-audit",
-                chart: "oci://harbor.home.local/helm-charts/vector",
-                version: "0.41.0",
-                values: {
-                    role: "Agent",
-                    image: {
-                        repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/vector",
-                        tag: "0.45.0-distroless-libc"
-                    },
-                    podLabels: podlabels,
-                    resources: {
-                        limits: { cpu: "200m", memory: "256Mi" },
-                        requests: { cpu: "200m", memory: "256Mi" }
-                    },
-                    nodeSelector: { "node-role.kubernetes.io/control-plane": "true" },
-                    tolerations: [{ key: "CriticalAddonsOnly", operator: "Exists" }],
-                    service: { enabled: false },
-                    customConfig: {
-                        data_dir: "/vector-data-dir",
-                        api: { enabled: false, address: "127.0.0.1:8686", playground: false },
-                        sources: { kubernetes_audit: { type: "file", max_line_bytes: 65536, include: ["/var/lib/rancher/rke2/server/logs/audit.log"] } },
-                        transforms: {
-                            kubernetes_audit_json: {
-                                type: "remap",
-                                inputs: ["kubernetes_audit"],
-                                source: `. = parse_json!(.message)`
-                            }
-                        },
-                        sinks: {
-                            kubernetes_logs_loki: {
-                                type: "loki",
-                                inputs: ["kubernetes_audit_json"],
-                                endpoint: "http://loki-distributor:3100",
-                                labels: { scrape_job: "kube-audit", cluster: "rke-it-prd-infra-shared-01" },
-                                compression: "none",
-                                healthcheck: { enabled: false },
-                                encoding: { codec: "json", except_fields: ["source_type"] },
-                                buffer: { type: "disk", max_size: 4294967296, when_full: "block" },
-                                batch: { max_events: 1024, timeout_secs: 3 }
-                            }
-                        }
-                    },
-                    extraVolumes: [
-                        {
-                            name: "varlibdockercontainers",
-                            hostPath: {
-                                path: "/var/lib/rancher/rke2/server/logs"
-                            }
-                        }
-                    ],
-                    extraVolumeMounts: [
-                        {
-                            name: "varlibdockercontainers",
-                            mountPath: "/var/lib/rancher/rke2/server/logs",
-                            readOnly: true
-                        }
-                    ],
-                    persistence: { hostPath: { path: "/var/lib/vector/kube-audit" } },
-                    podMonitor: {
-                        enabled: true,
-                        relabelings: [
-                            { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
-                            { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
-                            { sourceLabels: ["__meta_kubernetes_pod_label_project"], targetLabel: "project" },
-                            { sourceLabels: ["__meta_kubernetes_pod_label_group"], targetLabel: "group" },
-                            { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
-                            { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
-                        ]
-                    }
-                }
-            },
-            {
-                namespace: "monitoring",
-                name: "kube-pod",
-                chart: "oci://harbor.home.local/helm-charts/vector",
-                version: "0.41.0",
-                values: {
-                    role: "Agent",
-                    image: {
-                        repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/vector",
-                        tag: "0.45.0-distroless-libc"
-                    },
-                    podLabels: podlabels,
-                    resources: {
-                        limits: { cpu: "200m", memory: "256Mi" },
-                        requests: { cpu: "200m", memory: "256Mi" }
-                    },
-                    tolerations: [{ key: "CriticalAddonsOnly", operator: "Exists" }],
-                    service: { enabled: false },
-                    customConfig: {
-                        data_dir: "/vector-data-dir",
-                        api: { enabled: false, address: "127.0.0.1:8686", playground: false },
-                        sources: {
-                            kubernetes_logs: {
-                                type: "kubernetes_logs",
-                                max_line_bytes: 65536
-                            }
-                        },
-                        transforms: {
-                            kubernetes_remap: {
-                                type: "remap",
-                                inputs: ["kubernetes_logs"],
-                                source: `kubernetes = del(.kubernetes)
-file = del(.file)
-message = del(.message)
-kubernetes_labels = encode_json(kubernetes.pod_labels)
-kubernetes_labels = replace(kubernetes_labels, "app.kubernetes.io", "app_kubernetes_io")
-kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
-. = parse_json!(kubernetes_labels)
-.message = message
-.ip = kubernetes.pod_ip
-.container = kubernetes.container_name
-.node = kubernetes.pod_node_name
-.pod = kubernetes.pod_name
-.namespace = kubernetes.pod_namespace
-.timestamp = timestamp(.timestamp) ?? now()
-.cluster = "rke-it-prd-infra-shared-01"`
-                            },
-                            kubernetes_filter: {
-                                type: "filter",
-                                inputs: ["kubernetes_remap"],
-                                condition: '.app != "longhorn-manager" && .container != "metallb-speaker"'
-                            }
-                        },
-                        sinks: {
-                            kubernetes_logs_loki: {
-                                type: "loki",
-                                inputs: ["kubernetes_filter"],
-                                endpoint: "http://loki-distributor:3100",
-                                labels: { scrape_job: "kube-pod", cluster: "rke-it-prd-infra-shared-01" },
-                                compression: "none",
-                                healthcheck: { enabled: false },
-                                encoding: { codec: "json", except_fields: ["source_type"] },
-                                buffer: { type: "disk", max_size: 4294967296, when_full: "block" },
-                                batch: { max_events: 1024, timeout_secs: 3 }
-                            }
-                        }
-                    },
-                    persistence: { hostPath: { path: "/var/lib/vector/kube-pod" } },
-                    podMonitor: {
-                        enabled: true,
-                        relabelings: [
-                            { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
-                            { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
-                            { sourceLabels: ["__meta_kubernetes_pod_label_project"], targetLabel: "project" },
-                            { sourceLabels: ["__meta_kubernetes_pod_label_group"], targetLabel: "group" },
-                            { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
-                            { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
-                        ]
-                    }
-                }
             }
         ],
-        deployment: [
-            {
-                metadata: {
-                    name: "observability-lgtm",
-                    namespace: "monitoring"
-                },
-                spec: {
-                    replicas: 1,
-                    selector: {
-                        matchLabels: {
-                            app: "observability-lgtm"
-                        }
-                    },
-                    template: {
-                        metadata: {
-                            labels: {
-                                app: "observability-lgtm",
-                                customer: "it",
-                                environment: "prd",
-                                project: "container",
-                                group: "rke-it-prd-infra-shared-01",
-                                datacenter: "cn-north",
-                                domain: "local"
-                            },
-                            annotations: {}
-                        },
-                        spec: {
-                            containers: [
-                                {
-                                    name: "observability-lgtm",
-                                    image: "registry.cn-hangzhou.aliyuncs.com/goldenimage/observability-lgtm:v0.1@sha256:bb5dfd51dc75ec9ff92cb3fdce049bbedc9569e54c3a5d514eb4f1f574f7e74d",
-                                    resources: {
-                                        limits: { cpu: "2000m", memory: "256Mi" },
-                                        requests: { cpu: "2000m", memory: "256Mi" }
-                                    },
-                                    args: ["npm", "run", "index-with-tracer"],
-                                    ports: [
-                                        {
-                                            containerPort: 8080,
-                                            protocol: "TCP"
-                                        },
-                                        {
-                                            containerPort: 9464,
-                                            name: "prometheus",
-                                            protocol: "TCP"
-                                        },
-                                    ],
-                                    env: [
-                                        { name: "ENVIRONMENT", value: "prd" },
-                                        { name: "OTEL_SERVICE_NAME", value: "observability-lgtm" },
-                                        { name: "OTEL_RESOURCE_ATTRIBUTES", value: "environment=prd" },
-                                        { name: "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", value: "http://tempo-distributor:4318/v1/traces" },
-                                        { name: "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT", value: "http://loki-distributor:3100" }
-
-                                    ],
-                                    livenessProbe: {
-                                        failureThreshold: 10,
-                                        tcpSocket: {
-                                            port: 8080
-                                        },
-                                        initialDelaySeconds: 60,
-                                        periodSeconds: 10,
-                                        successThreshold: 1,
-                                        timeoutSeconds: 30
-                                    },
-                                    readinessProbe: {
-                                        failureThreshold: 3,
-                                        tcpSocket: {
-                                            port: 8080
-                                        },
-                                        initialDelaySeconds: 60,
-                                        periodSeconds: 10,
-                                        successThreshold: 1,
-                                        timeoutSeconds: 10
-                                    },
-                                    imagePullPolicy: "IfNotPresent"
-                                }
-                            ],
-                            restartPolicy: "Always"
-                        }
-                    }
-                }
-            }
-        ],
-        service: [
-            {
-                metadata: {
-                    labels: {
-                        app: "observability-lgtm"
-                    },
-                    name: "observability-lgtm",
-                    namespace: "monitoring"
-                },
-                spec: {
-                    selector: {
-                        app: "observability-lgtm"
-                    },
-                    ports: [
-                        {
-                            name: "observability-lgtm",
-                            port: 8080,
-                            protocol: "TCP",
-                            targetPort: 8080
-                        }
-                    ]
-                }
-            }
-        ],
+        deployment: [],
+        service: [],
         customresource: [
             {
                 apiVersion: "apisix.apache.org/v2",
@@ -1863,69 +1474,6 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
                         }
                     ]
                 }
-            },
-            {
-                apiVersion: "apisix.apache.org/v2",
-                kind: "ApisixRoute",
-                metadata: {
-                    name: "observability-lgtm",
-                    namespace: "monitoring"
-                },
-                spec: {
-                    http: [
-                        {
-                            name: "root",
-                            match: {
-                                methods: ["GET", "HEAD"],
-                                hosts: ["observability-lgtm.home.local"],
-                                paths: ["/*"]
-                            },
-                            backends: [
-                                {
-                                    serviceName: "observability-lgtm",
-                                    servicePort: 8080,
-                                    resolveGranularity: "service"
-                                }
-                            ]
-                        }
-                    ]
-                }
-            },
-            {
-                apiVersion: "monitoring.coreos.com/v1",
-                kind: "PodMonitor",
-                metadata: {
-                    name: "observability-lgtm",
-                    namespace: "monitoring"
-                },
-                spec: {
-                    podMetricsEndpoints: [
-                        {
-                            interval: "60s",
-                            scrapeTimeout: "30s",
-                            scheme: "http",
-                            targetPort: "prometheus",
-                            relabelings: [
-                                { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
-                                { action: "replace", replacement: "it", sourceLabels: ["__address__"], targetLabel: "customer" },
-                                { action: "replace", replacement: "prd", sourceLabels: ["__address__"], targetLabel: "environment" },
-                                { action: "replace", replacement: "container", sourceLabels: ["__address__"], targetLabel: "project" },
-                                { action: "replace", replacement: "rke-it-prd-infra-shared-01", sourceLabels: ["__address__"], targetLabel: "group" },
-                                { action: "replace", replacement: "cn-north", sourceLabels: ["__address__"], targetLabel: "datacenter" },
-                                { action: "replace", replacement: "local", sourceLabels: ["__address__"], targetLabel: "domain" },
-                                { action: "replace", replacement: "observability-lgtm", sourceLabels: ["__address__"], targetLabel: "service" }
-                            ]
-                        }
-                    ],
-                    namespaceSelector: {
-                        matchNames: ["monitoring"]
-                    },
-                    selector: {
-                        matchLabels: {
-                            app: "observability-lgtm"
-                        }
-                    }
-                }
             }
         ]
     }
@@ -1933,7 +1481,7 @@ kubernetes_labels = replace(kubernetes_labels, "helm.sh", "helm_sh")
 
 const namespace = new k8s.core.v1.Namespace('Namespace', { resources: resources })
 const configmap = new k8s.core.v1.ConfigMap('ConfigMap', { resources: resources }, { dependsOn: [namespace] });
-const release = new k8s.helm.v3.Release('Release', { resources: resources }, { dependsOn: [configmap] });
+const release = new k8s.helm.v3.Release('Release', { resources: resources }, { dependsOn: [namespace] });
 const deployment = new k8s.apps.v1.Deployment('Deployment', { resources: resources }, { dependsOn: [release] });
-const service = new k8s.core.v1.Service('Service', { resources: resources }, { dependsOn: [deployment, release] });
-const customresource = new k8s.apiextensions.CustomResource('CustomResource', { resources: resources }, { dependsOn: [service] });
+const service = new k8s.core.v1.Service('Service', { resources: resources }, { dependsOn: [release] });
+const customresource = new k8s.apiextensions.CustomResource('CustomResource', { resources: resources }, { dependsOn: [release] });
