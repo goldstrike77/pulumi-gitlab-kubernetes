@@ -1389,6 +1389,137 @@ SOFTWARE.
                         prometheusRule: { enabled: false }
                     }
                 }
+            },
+            {
+                namespace: "monitoring",
+                name: "opentelemetry-collector",
+                chart: "oci://harbor.home.local/helm-charts/opentelemetry-collector",
+                version: "0.120.1",
+                values: {
+                    mode: "deployment",
+                    config: {
+                        exporters: {
+                            "otlphttp/metrics": {
+                                endpoint: "http://mimir-distributor:8080/otlp",
+                                tls: { insecure: true }
+                            },
+                            "otlphttp/traces": {
+                                endpoint: "http://tempo-distributor:4317",
+                                tls: { insecure: true }
+                            },
+                            "otlphttp/logs": {
+                                endpoint: "http://loki-distributor:3100/otlp",
+                                tls: { insecure: true }
+                            }
+                        },
+                        receivers: {
+                            jaeger: {
+                                protocols: {
+                                    grpc: { endpoint: "${env:MY_POD_IP}:14250" },
+                                    thrift_http: { endpoint: "${env:MY_POD_IP}:14268" },
+                                    thrift_compact: { endpoint: "${env:MY_POD_IP}:6831" }
+                                }
+                            },
+                            otlp: {
+                                protocols: {
+                                    grpc: { endpoint: "${env:MY_POD_IP}:4317" },
+                                    http: { endpoint: "${env:MY_POD_IP}:4318" }
+                                }
+                            },
+                            prometheus: {
+                                config: {
+                                    scrape_configs: [
+                                        {
+                                            job_name: "opentelemetry-collector",
+                                            scrape_interval: "10s",
+                                            static_configs: [
+                                                {
+                                                    targets: ["${env:MY_POD_IP}:8888"]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            },
+                            zipkin: {
+                                endpoint: "${env:MY_POD_IP}:9411"
+                            }
+                        },
+                        service: {
+                            telemetry: {
+                                metrics: {
+                                    address: "${env:MY_POD_IP}:8888"
+                                }
+                            },
+                            "extensions": [
+                                "health_check"
+                            ],
+                            "pipelines": {
+                                "traces": {
+                                    "receivers": [
+                                        "otlp",
+                                        "jaeger",
+                                        "zipkin"
+                                    ],
+                                    "processors": [
+                                        "memory_limiter",
+                                        "batch"
+                                    ],
+                                    "exporters": [
+                                        "otlphttp/traces"
+                                    ]
+                                },
+                                "metrics": {
+                                    "receivers": [
+                                        "otlp",
+                                        "prometheus"
+                                    ],
+                                    "processors": [
+                                        "memory_limiter",
+                                        "batch"
+                                    ],
+                                    "exporters": [
+                                        "otlphttp/metrics"
+                                    ]
+                                },
+                                "logs": {
+                                    "receivers": [
+                                        "otlp"
+                                    ],
+                                    "processors": [
+                                        "memory_limiter",
+                                        "batch"
+                                    ],
+                                    "exporters": [
+                                        "otlphttp/logs"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    image: {
+                        repository: "registry.cn-shanghai.aliyuncs.com/goldenimage/opentelemetry-collector",
+                        tag: "0.122.1"
+                    },
+                    resources: {
+                        limits: { cpu: "500m", memory: "512Mi" },
+                        requests: { cpu: "500m", memory: "512Mi" }
+                    },
+                    podLabels: podlabels,
+                    replicaCount: 1,
+                    serviceMonitor: {
+                        enabled: true,
+                        relabelings: [
+                            { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
+                            { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
+                            { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
+                            { sourceLabels: ["__meta_kubernetes_pod_label_project"], targetLabel: "project" },
+                            { sourceLabels: ["__meta_kubernetes_pod_label_group"], targetLabel: "group" },
+                            { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
+                            { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
+                        ]
+                    }
+                }
             }
         ],
         deployment: [],
