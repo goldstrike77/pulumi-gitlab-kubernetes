@@ -1510,7 +1510,7 @@ SOFTWARE.
                     podLabels: podlabels,
                     replicaCount: 1,
                     serviceMonitor: {
-                        enabled: true,
+                        enabled: false,
                         relabelings: [
                             { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
                             { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
