@@ -31,13 +31,14 @@ const resources = [
         ],
         configmap: [],
         release: [
+/**
             {
                 namespace: "monitoring",
                 name: "kube-prometheus-stack",
                 chart: "oci://harbor.home.local/helm-charts/kube-prometheus-stack",
                 version: "70.4.1",
                 values: {
-                    //fullnameOverride: "kubepromstack",
+                    fullnameOverride: "kubepromstack",
                     crds: {
                         enabled: true,
                         upgradeJob: {
@@ -615,6 +616,7 @@ SOFTWARE.
                     }
                 }
             },
+ */           
             {
                 namespace: "monitoring",
                 name: "loki",
@@ -696,8 +698,8 @@ SOFTWARE.
                     ingester: {
                         replicas: 3,
                         resources: {
-                            limits: { cpu: "500m", memory: "1024Mi" },
-                            requests: { cpu: "500m", memory: "1024Mi" }
+                            limits: { cpu: "500m", memory: "2048Mi" },
+                            requests: { cpu: "500m", memory: "2048Mi" }
                         },
                         persistence: {
                             enabled: true,
@@ -1404,7 +1406,7 @@ SOFTWARE.
                                 tls: { insecure: true }
                             },
                             "otlphttp/traces": {
-                                endpoint: "http://tempo-distributor:4317",
+                                endpoint: "http://tempo-distributor:4318",
                                 tls: { insecure: true }
                             },
                             "otlphttp/logs": {
@@ -1522,8 +1524,106 @@ SOFTWARE.
                 }
             }
         ],
-        deployment: [],
-        service: [],
+        deployment: [
+            {
+                metadata: {
+                    name: "otel-lgtm-nodejs",
+                    namespace: "monitoring"
+                },
+                spec: {
+                    replicas: 1,
+                    selector: {
+                        matchLabels: {
+                            app: "otel-lgtm-nodejs"
+                        }
+                    },
+                    template: {
+                        metadata: {
+                            labels: {
+                                app: "otel-lgtm-nodejs",
+                                customer: "it",
+                                environment: "prd",
+                                project: "container",
+                                group: "rke-it-prd-infra-shared-01",
+                                datacenter: "cn-north",
+                                domain: "local"
+                            },
+                            annotations: {}
+                        },
+                        spec: {
+                            containers: [
+                                {
+                                    name: "otel-lgtm-nodejs",
+                                    image: "registry.cn-hangzhou.aliyuncs.com/goldenimage/otel-lgtm:nodejs-v0.1@sha256:230084cf2452728da9940dad2883808f889ad6c62fc4bb0c495e94a85cd5924d",
+                                    resources: {
+                                        limits: { cpu: "2000m", memory: "256Mi" },
+                                        requests: { cpu: "2000m", memory: "256Mi" }
+                                    },
+                                    ports: [
+                                        {
+                                            containerPort: 8080,
+                                            protocol: "TCP"
+                                        }
+                                    ],
+                                    env: [
+                                        { name: "OTEL_SERVICE_NAME", value: "otel-lgtm-nodejs" },
+                                        { name: "OTEL_SERVICE_VERSION", value: "0.1.0" },
+                                        { name: "OTEL_RESOURCE_ATTRIBUTES", value: "environment=prd" },
+                                        { name: "OTEL_EXPORTER_OTLP_ENDPOINT", value: "http://opentelemetry-collector:4318" }
+                                    ],
+                                    livenessProbe: {
+                                        failureThreshold: 10,
+                                        tcpSocket: {
+                                            port: 8080
+                                        },
+                                        initialDelaySeconds: 60,
+                                        periodSeconds: 10,
+                                        successThreshold: 1,
+                                        timeoutSeconds: 30
+                                    },
+                                    readinessProbe: {
+                                        failureThreshold: 3,
+                                        tcpSocket: {
+                                            port: 8080
+                                        },
+                                        initialDelaySeconds: 60,
+                                        periodSeconds: 10,
+                                        successThreshold: 1,
+                                        timeoutSeconds: 10
+                                    },
+                                    imagePullPolicy: "IfNotPresent"
+                                }
+                            ],
+                            restartPolicy: "Always"
+                        }
+                    }
+                }
+            }
+        ],
+        service: [
+            {
+                metadata: {
+                    labels: {
+                        app: "otel-lgtm-nodejs"
+                    },
+                    name: "otel-lgtm-nodejs",
+                    namespace: "monitoring"
+                },
+                spec: {
+                    selector: {
+                        app: "otel-lgtm-nodejs"
+                    },
+                    ports: [
+                        {
+                            name: "otel-lgtm-nodejs",
+                            port: 8080,
+                            protocol: "TCP",
+                            targetPort: 8080
+                        }
+                    ]
+                }
+            }
+        ],
         customresource: [
             {
                 apiVersion: "apisix.apache.org/v2",
@@ -1574,6 +1674,17 @@ SOFTWARE.
                                     servicePort: 80,
                                     resolveGranularity: "service"
                                 }
+                            ],
+                            plugins: [
+                                {
+                                    name: "opentelemetry",
+                                    enable: true,
+                                    config: {
+                                        sampler: {
+                                            name: "always_on"
+                                        }
+                                    }
+                                }
                             ]
                         }
                     ]
@@ -1600,6 +1711,44 @@ SOFTWARE.
                                     serviceName: "kubepromstack-alertmanager",
                                     servicePort: 9093,
                                     resolveGranularity: "service"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            {
+                apiVersion: "apisix.apache.org/v2",
+                kind: "ApisixRoute",
+                metadata: {
+                    name: "otel-lgtm-nodejs",
+                    namespace: "monitoring"
+                },
+                spec: {
+                    http: [
+                        {
+                            name: "root",
+                            match: {
+                                methods: ["GET", "HEAD"],
+                                hosts: ["otel-lgtm-nodejs.home.local"],
+                                paths: ["/*"]
+                            },
+                            backends: [
+                                {
+                                    serviceName: "otel-lgtm-nodejs",
+                                    servicePort: 8080,
+                                    resolveGranularity: "service"
+                                }
+                            ],
+                            plugins: [
+                                {
+                                    name: "opentelemetry",
+                                    enable: true,
+                                    config: {
+                                        sampler: {
+                                            name: "always_on"
+                                        }
+                                    }
                                 }
                             ]
                         }
