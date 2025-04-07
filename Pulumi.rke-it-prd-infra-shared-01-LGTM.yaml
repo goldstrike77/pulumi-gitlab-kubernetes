@@ -10,4 +10,8 @@ config:
     secure: v1:jrkICoDV8oYjpX5l:sSLTzQ0SgeXGggvovnsmX9b10/sIlQGH0URWvc6ZduzHGM4LIyqRuNE57/gz4Ce1LEyK7gKbeLw=
   demo:consulToken:
     secure: v1:euhu5tdA7TCpipks:qRO+yjdCcNNrMY+r3oJ2HsPo6i3ByOeNJBNIrm+3wSa6LNYh+YSWPCLipFjhjbH7xaanGw==
+  demo:rootPassword:
+    secure: v1:RA497V/Xc10t+yIf:z0GN6BMvX/41w1p9scTAjkLptCxGHkvZ
+  demo:userPassword:
+    secure: v1:j6GEOqlDRQB0CEy6:0675ZoI250Qradqz5DPPeX4CAEoZpdto
   kubernetes:context: kubernetes-admin@rke-it-prd-infra-shared-01

@@ -31,592 +31,592 @@ const resources = [
         ],
         configmap: [],
         release: [
-/**
-            {
-                namespace: "monitoring",
-                name: "kube-prometheus-stack",
-                chart: "oci://harbor.home.local/helm-charts/kube-prometheus-stack",
-                version: "70.4.1",
-                values: {
-                    fullnameOverride: "kubepromstack",
-                    crds: {
-                        enabled: true,
-                        upgradeJob: {
-                            enabled: true,
-                            forceConflicts: true,
-                            image: {
-                                busybox: {
-                                    repository: "docker-io/busybox",
-                                    tag: "1.36.1"
-                                },
-                                kubectl: {
-                                    repository: "docker-io/kubectl",
-                                    tag: "1.31.3-debian-12-r1"
-                                }
-                            },
-                            resources: {
-                                limits: { cpu: "100m", memory: "64Mi" },
-                                requests: { cpu: "100m", memory: "64Mi" }
-                            }
-                        }
-                    },
-                    defaultRules: { create: false },
-                    global: {
-                        imageRegistry: "swr.cn-east-3.myhuaweicloud.com"
-                    },
-                    alertmanager: {
-                        enabled: true,
-                        config: {
-                            global: {
-                                http_config: {
-                                    tls_config: {
-                                        insecure_skip_verify: true
-                                    }
-                                },
-                                resolve_timeout: "5m",
-                                smtp_smarthost: "127.0.0.1:25",
-                                smtp_from: "do-not-reply@example.com",
-                                smtp_require_tls: false,
-                                smtp_auth_username: "do-not-reply@example.com",
-                                smtp_auth_password: "password"
-                            },
-                            route: {
-                                group_by: ["alertname", "cluster", "service"],
-                                group_wait: "45s",
-                                group_interval: "5m",
-                                repeat_interval: "24h",
-                                receiver: "null",
-                                routes: [
-                                    {
-                                        receiver: "grafana-oncall",
-                                        continue: true
-                                    },
-                                    //{
-                                    //    receiver: 'email',
-                                    //    continue: true
-                                    //},
-                                    {
-                                        matchers: ["alertname = Watchdog"],
-                                        receiver: 'null',
-                                        continue: false
-                                    },
-                                ]
-                            },
-                            inhibit_rules: [
-                                {
-                                    source_matchers: ["severity = P1"],
-                                    target_matchers: ["severity =~ P2|P3|P4"],
-                                    equal: ['alertname', 'cluster', 'service']
-                                },
-                                {
-                                    source_matchers: ["severity = P2"],
-                                    target_matchers: ["severity =~ P3|P4"],
-                                    equal: ['alertname', 'cluster', 'service']
-                                },
-                                {
-                                    source_matchers: ["severity = P3"],
-                                    target_matchers: ["severity = P4"],
-                                    equal: ['alertname', 'cluster', 'service']
-                                }
-                            ],
-                            receivers: [
-                                {
-                                    name: "null"
-                                },
-                                {
-                                    name: "email",
-                                    email_configs: [
-                                        {
-                                            send_resolved: true,
-                                            headers: {
-                                                subject: "[ {{ .Status | toUpper }} - {{ .CommonLabels.severity | toUpper }} ] Alertmanager notify for {{ .CommonLabels.alertname }}"
+            /**
+                        {
+                            namespace: "monitoring",
+                            name: "kube-prometheus-stack",
+                            chart: "oci://harbor.home.local/helm-charts/kube-prometheus-stack",
+                            version: "70.4.1",
+                            values: {
+                                fullnameOverride: "kubepromstack",
+                                crds: {
+                                    enabled: true,
+                                    upgradeJob: {
+                                        enabled: true,
+                                        forceConflicts: true,
+                                        image: {
+                                            busybox: {
+                                                repository: "docker-io/busybox",
+                                                tag: "1.36.1"
                                             },
-                                            to: "somebody@example.com"
+                                            kubectl: {
+                                                repository: "docker-io/kubectl",
+                                                tag: "1.31.3-debian-12-r1"
+                                            }
+                                        },
+                                        resources: {
+                                            limits: { cpu: "100m", memory: "64Mi" },
+                                            requests: { cpu: "100m", memory: "64Mi" }
                                         }
-                                    ]
+                                    }
                                 },
-                                {
-                                    name: "grafana-oncall",
-                                    webhook_configs: [
-                                        {
-                                            url: "http://oncall-engine.oncall.svc.cluster.local:8080/integrations/v1/alertmanager/R6BlJsL6jf6xH5MSFHwJ2jNdN/",
-                                            send_resolved: true
-                                        }
-                                    ]
-                                }
-                            ],
-                            templates: ["/etc/alertmanager/config/*.tmpl"]
-                        },
-                        templateFiles: {
-                            "default.tmpl": `
-{{ define "__description" }}{{ end }}      
-{{ define "__text_alert_firing_list" }}{{ range . }}
-Start: {{ .StartsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}
-{{ range .Labels.SortedPairs }}{{ .Name | title }}: {{ .Value }}
-{{ end }}{{ range .Annotations.SortedPairs }}{{ .Name | title }}: {{ .Value }}{{ end }}
-{{ end }}{{ end }}      
-{{ define "__text_alert_resolved_list" }}{{ range . }}
-Start: {{ .StartsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}
-End:   {{ .EndsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}
-Duration: {{ (.EndsAt.Sub .StartsAt).Truncate 1000000000 }}
-{{ range .Labels.SortedPairs }}{{ .Name | title }}: {{ .Value }}
-{{ end }}{{ range .Annotations.SortedPairs }}{{ .Name | title }}: {{ .Value }}{{ end }}
-{{ end }}{{ end }}      
-{{ define "wechat.default.message" }}{{ if gt (len .Alerts.Firing) 0 -}}
-infoING ☢
-{{ template "__text_alert_firing_list" .Alerts.Firing }}
-{{- end }}{{ if gt (len .Alerts.Resolved) 0 -}}
-RESOLVED ❀
-{{ template "__text_alert_resolved_list" .Alerts.Resolved }}
-{{- end }}
-{{- end }}
-{{ define "wechat.default.api_secret" }}{{ end }}
-{{ define "wechat.default.to_user" }}{{ end }}
-{{ define "wechat.default.to_party" }}{{ end }}
-{{ define "wechat.default.to_tag" }}{{ end }}
-{{ define "wechat.default.agent_id" }}{{ end }}    
-
-
-{{ define "email.default.html" }}
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<!--
-Style and HTML derived from https://github.com/mailgun/transactional-email-templates
-
-The MIT License (MIT)
-
-Copyright (c) 2014 Mailgun
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
--->
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-<head style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-<meta name="viewport" content="width=device-width" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
-
-</head>
-
-<body itemscope="" itemtype="http://schema.org/EmailMessage" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: none; height: 100%; line-height: 1.6em; width: 100% !important; background-color: #f6f6f6; margin: 0; padding: 0;" bgcolor="#f6f6f6">
-
-<table style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; width: 100%; background-color: #f6f6f6; margin: 0;" bgcolor="#f6f6f6">
-  <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-    <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0;" valign="top"></td>
-    <td width="600" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; display: block !important; max-width: 600px !important; clear: both !important; width: 100% !important; margin: 0 auto; padding: 0;" valign="top">
-      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; max-width: 600px; display: block; margin: 0 auto; padding: 0;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; border-radius: 3px; background-color: #fff; margin: 0; border: 1px solid #e9e9e9;" bgcolor="#fff">
-          <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-            <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 10px;" valign="top">
-              <table width="100%" cellpadding="0" cellspacing="0" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-                <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-                  <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                  </td>
-                </tr>
-                {{ if gt (len .Alerts.Firing) 0 }}
-                <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-                  <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                    <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; color: #ff0000; margin: 0;">[{{ .Alerts.Firing | len }}] infoING ☢</strong>
- 
-                  </td>
-                </tr>
-                {{ end }}
-                {{ range .Alerts.Firing }}
-                <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-                  <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                    Start: {{ .StartsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
-                    {{ range .Labels.SortedPairs }}{{ .Name | title }}: {{ .Value }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />{{ end }}
-                    {{ range .Annotations.SortedPairs }}{{ .Name | title }}: {{ .Value }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />{{ end }}
-                  </td>
-                </tr>
-                {{ end }}
-
-                {{ if gt (len .Alerts.Resolved) 0 }}
-                  {{ if gt (len .Alerts.Firing) 0 }}
-                <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-                  <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                    <br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
-                    <hr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
-                    <br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
-                  </td>
-                </tr>
-                  {{ end }}
-                <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-                  <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                    <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; color: #44945e; margin: 0;">[{{ .Alerts.Resolved | len }}] RESOLVED ❀</strong>
- 
-                  </td>
-                </tr>
-                {{ end }}
-                {{ range .Alerts.Resolved }}
-                <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-                  <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                    Start: {{ .StartsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
-                    End: &nbsp;{{ .EndsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
-                    Duration: {{ (.EndsAt.Sub .StartsAt).Truncate 1000000000 }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
-                    {{ range .Labels.SortedPairs }}{{ .Name | title }}: {{ .Value }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />{{ end }}
-                    {{ range .Annotations.SortedPairs }}{{ .Name | title }}: {{ .Value }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />{{ end }}
-                  </td>
-                </tr>
-                {{ end }}
-              </table>
-            </td>
-          </tr>
-        </table>
-
-        <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; width: 100%; clear: both; color: #999; margin: 0; padding: 20px;">
-          <table width="100%" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-            <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-            </tr>
-          </table>
-        </div></div>
-    </td>
-    <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0;" valign="top"></td>
-  </tr>
-</table>
-
-</body>
-</html>
-
-{{ end }}
-`
-                        },
-                        ingress: { enabled: false },
-                        serviceMonitor: {
-                            relabelings: [
-                                { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
-                                { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
-                                { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
-                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "k3s-it-prd-infra-shared-01" },
-                                { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
-                                { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
-                            ]
-                        },
-                        alertmanagerSpec: {
-                            image: {
-                                repository: "quay-io/alertmanager",
-                                tag: "v0.28.1"
-                            },
-                            logLevel: "info",
-                            replicas: 1,
-                            storage: {
-                                volumeClaimTemplate: {
-                                    spec: {
-                                        storageClassName: "vsphere-san-sc",
+                                defaultRules: { create: false },
+                                global: {
+                                    imageRegistry: "swr.cn-east-3.myhuaweicloud.com"
+                                },
+                                alertmanager: {
+                                    enabled: true,
+                                    config: {
+                                        global: {
+                                            http_config: {
+                                                tls_config: {
+                                                    insecure_skip_verify: true
+                                                }
+                                            },
+                                            resolve_timeout: "5m",
+                                            smtp_smarthost: "127.0.0.1:25",
+                                            smtp_from: "do-not-reply@example.com",
+                                            smtp_require_tls: false,
+                                            smtp_auth_username: "do-not-reply@example.com",
+                                            smtp_auth_password: "password"
+                                        },
+                                        route: {
+                                            group_by: ["alertname", "cluster", "service"],
+                                            group_wait: "45s",
+                                            group_interval: "5m",
+                                            repeat_interval: "24h",
+                                            receiver: "null",
+                                            routes: [
+                                                {
+                                                    receiver: "grafana-oncall",
+                                                    continue: true
+                                                },
+                                                //{
+                                                //    receiver: 'email',
+                                                //    continue: true
+                                                //},
+                                                {
+                                                    matchers: ["alertname = Watchdog"],
+                                                    receiver: 'null',
+                                                    continue: false
+                                                },
+                                            ]
+                                        },
+                                        inhibit_rules: [
+                                            {
+                                                source_matchers: ["severity = P1"],
+                                                target_matchers: ["severity =~ P2|P3|P4"],
+                                                equal: ['alertname', 'cluster', 'service']
+                                            },
+                                            {
+                                                source_matchers: ["severity = P2"],
+                                                target_matchers: ["severity =~ P3|P4"],
+                                                equal: ['alertname', 'cluster', 'service']
+                                            },
+                                            {
+                                                source_matchers: ["severity = P3"],
+                                                target_matchers: ["severity = P4"],
+                                                equal: ['alertname', 'cluster', 'service']
+                                            }
+                                        ],
+                                        receivers: [
+                                            {
+                                                name: "null"
+                                            },
+                                            {
+                                                name: "email",
+                                                email_configs: [
+                                                    {
+                                                        send_resolved: true,
+                                                        headers: {
+                                                            subject: "[ {{ .Status | toUpper }} - {{ .CommonLabels.severity | toUpper }} ] Alertmanager notify for {{ .CommonLabels.alertname }}"
+                                                        },
+                                                        to: "somebody@example.com"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                name: "grafana-oncall",
+                                                webhook_configs: [
+                                                    {
+                                                        url: "http://oncall-engine.oncall.svc.cluster.local:8080/integrations/v1/alertmanager/R6BlJsL6jf6xH5MSFHwJ2jNdN/",
+                                                        send_resolved: true
+                                                    }
+                                                ]
+                                            }
+                                        ],
+                                        templates: ["/etc/alertmanager/config/*.tmpl"]
+                                    },
+                                    templateFiles: {
+                                        "default.tmpl": `
+            {{ define "__description" }}{{ end }}      
+            {{ define "__text_alert_firing_list" }}{{ range . }}
+            Start: {{ .StartsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}
+            {{ range .Labels.SortedPairs }}{{ .Name | title }}: {{ .Value }}
+            {{ end }}{{ range .Annotations.SortedPairs }}{{ .Name | title }}: {{ .Value }}{{ end }}
+            {{ end }}{{ end }}      
+            {{ define "__text_alert_resolved_list" }}{{ range . }}
+            Start: {{ .StartsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}
+            End:   {{ .EndsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}
+            Duration: {{ (.EndsAt.Sub .StartsAt).Truncate 1000000000 }}
+            {{ range .Labels.SortedPairs }}{{ .Name | title }}: {{ .Value }}
+            {{ end }}{{ range .Annotations.SortedPairs }}{{ .Name | title }}: {{ .Value }}{{ end }}
+            {{ end }}{{ end }}      
+            {{ define "wechat.default.message" }}{{ if gt (len .Alerts.Firing) 0 -}}
+            infoING ☢
+            {{ template "__text_alert_firing_list" .Alerts.Firing }}
+            {{- end }}{{ if gt (len .Alerts.Resolved) 0 -}}
+            RESOLVED ❀
+            {{ template "__text_alert_resolved_list" .Alerts.Resolved }}
+            {{- end }}
+            {{- end }}
+            {{ define "wechat.default.api_secret" }}{{ end }}
+            {{ define "wechat.default.to_user" }}{{ end }}
+            {{ define "wechat.default.to_party" }}{{ end }}
+            {{ define "wechat.default.to_tag" }}{{ end }}
+            {{ define "wechat.default.agent_id" }}{{ end }}    
+            
+            
+            {{ define "email.default.html" }}
+            <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+            <!--
+            Style and HTML derived from https://github.com/mailgun/transactional-email-templates
+            
+            The MIT License (MIT)
+            
+            Copyright (c) 2014 Mailgun
+            
+            Permission is hereby granted, free of charge, to any person obtaining a copy
+            of this software and associated documentation files (the "Software"), to deal
+            in the Software without restriction, including without limitation the rights
+            to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+            copies of the Software, and to permit persons to whom the Software is
+            furnished to do so, subject to the following conditions:
+            
+            The above copyright notice and this permission notice shall be included in all
+            copies or substantial portions of the Software.
+            
+            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+            IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+            FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+            AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+            LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+            SOFTWARE.
+            -->
+            <html xmlns="http://www.w3.org/1999/xhtml" xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+            <head style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+            <meta name="viewport" content="width=device-width" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+            <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+            
+            </head>
+            
+            <body itemscope="" itemtype="http://schema.org/EmailMessage" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: none; height: 100%; line-height: 1.6em; width: 100% !important; background-color: #f6f6f6; margin: 0; padding: 0;" bgcolor="#f6f6f6">
+            
+            <table style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; width: 100%; background-color: #f6f6f6; margin: 0;" bgcolor="#f6f6f6">
+              <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+                <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0;" valign="top"></td>
+                <td width="600" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; display: block !important; max-width: 600px !important; clear: both !important; width: 100% !important; margin: 0 auto; padding: 0;" valign="top">
+                  <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; max-width: 600px; display: block; margin: 0 auto; padding: 0;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; border-radius: 3px; background-color: #fff; margin: 0; border: 1px solid #e9e9e9;" bgcolor="#fff">
+                      <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+                        <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 10px;" valign="top">
+                          <table width="100%" cellpadding="0" cellspacing="0" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+                            <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+                              <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
+                              </td>
+                            </tr>
+                            {{ if gt (len .Alerts.Firing) 0 }}
+                            <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+                              <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
+                                <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; color: #ff0000; margin: 0;">[{{ .Alerts.Firing | len }}] infoING ☢</strong>
+             
+                              </td>
+                            </tr>
+                            {{ end }}
+                            {{ range .Alerts.Firing }}
+                            <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+                              <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
+                                Start: {{ .StartsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+                                {{ range .Labels.SortedPairs }}{{ .Name | title }}: {{ .Value }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />{{ end }}
+                                {{ range .Annotations.SortedPairs }}{{ .Name | title }}: {{ .Value }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />{{ end }}
+                              </td>
+                            </tr>
+                            {{ end }}
+            
+                            {{ if gt (len .Alerts.Resolved) 0 }}
+                              {{ if gt (len .Alerts.Firing) 0 }}
+                            <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+                              <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
+                                <br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+                                <hr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+                                <br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+                              </td>
+                            </tr>
+                              {{ end }}
+                            <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+                              <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
+                                <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; color: #44945e; margin: 0;">[{{ .Alerts.Resolved | len }}] RESOLVED ❀</strong>
+             
+                              </td>
+                            </tr>
+                            {{ end }}
+                            {{ range .Alerts.Resolved }}
+                            <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+                              <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
+                                Start: {{ .StartsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+                                End: &nbsp;{{ .EndsAt.Local.Format "Mon, 02 Jan 2006 15:04:05 MST" }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+                                Duration: {{ (.EndsAt.Sub .StartsAt).Truncate 1000000000 }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+                                {{ range .Labels.SortedPairs }}{{ .Name | title }}: {{ .Value }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />{{ end }}
+                                {{ range .Annotations.SortedPairs }}{{ .Name | title }}: {{ .Value }}<br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />{{ end }}
+                              </td>
+                            </tr>
+                            {{ end }}
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+            
+                    <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; width: 100%; clear: both; color: #999; margin: 0; padding: 20px;">
+                      <table width="100%" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+                        <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+                        </tr>
+                      </table>
+                    </div></div>
+                </td>
+                <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0;" valign="top"></td>
+              </tr>
+            </table>
+            
+            </body>
+            </html>
+            
+            {{ end }}
+            `
+                                    },
+                                    ingress: { enabled: false },
+                                    serviceMonitor: {
+                                        relabelings: [
+                                            { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
+                                            { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
+                                            { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
+                                            { sourceLabels: ["__address__"], targetLabel: "group", replacement: "k3s-it-prd-infra-shared-01" },
+                                            { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
+                                            { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
+                                        ]
+                                    },
+                                    alertmanagerSpec: {
+                                        image: {
+                                            repository: "quay-io/alertmanager",
+                                            tag: "v0.28.1"
+                                        },
+                                        logLevel: "info",
+                                        replicas: 1,
+                                        storage: {
+                                            volumeClaimTemplate: {
+                                                spec: {
+                                                    storageClassName: "vsphere-san-sc",
+                                                    resources: {
+                                                        requests: {
+                                                            storage: "3Gi"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        externalUrl: "https://alertmanager-lgtm.home.local",
                                         resources: {
-                                            requests: {
-                                                storage: "3Gi"
+                                            limits: { cpu: "100m", memory: "64Mi" },
+                                            requests: { cpu: "100m", memory: "64Mi" }
+                                        },
+                                        volumes: [
+                                            {
+                                                name: "cst-timezone",
+                                                hostPath: {
+                                                    path: "/usr/share/zoneinfo/PRC",
+                                                    type: "File"
+                                                }
+                                            }
+                                        ],
+                                        volumeMounts: [
+                                            {
+                                                name: "cst-timezone",
+                                                mountPath: "/etc/localtime",
+                                                readOnly: true
+                                            }
+                                        ]
+                                    }
+                                },
+                                grafana: { enabled: false },
+                                kubeApiServer: {
+                                    enabled: true,
+                                    serviceMonitor: {
+                                        relabelings: [
+                                            { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
+                                            { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
+                                            { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
+                                            { sourceLabels: ["__address__"], targetLabel: "group", replacement: "rke-it-prd-infra-shared-01" },
+                                            { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
+                                            { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
+                                        ]
+                                    }
+                                },
+                                kubelet: {
+                                    enabled: true,
+                                    serviceMonitor: {
+                                        probes: true,
+                                        cAdvisorRelabelings: [
+                                            { sourceLabels: ["__metrics_path__"], targetLabel: "metrics_path" },
+                                            { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
+                                            { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
+                                            { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
+                                            { sourceLabels: ["__address__"], targetLabel: "group", replacement: "rke-it-prd-infra-shared-01" },
+                                            { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
+                                            { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
+                                        ],
+                                        relabelings: [
+                                            { sourceLabels: ["__metrics_path__"], targetLabel: "metrics_path" },
+                                            { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
+                                            { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
+                                            { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
+                                            { sourceLabels: ["__address__"], targetLabel: "group", replacement: "rke-it-prd-infra-shared-01" },
+                                            { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
+                                            { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
+                                        ]
+                                    }
+                                },
+                                kubeControllerManager: { enabled: false },
+                                coreDns: {
+                                    enabled: true,
+                                    serviceMonitor: {
+                                        relabelings: [
+                                            { sourceLabels: ["__metrics_path__"], targetLabel: "metrics_path" },
+                                            { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
+                                            { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
+                                            { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
+                                            { sourceLabels: ["__address__"], targetLabel: "group", replacement: "rke-it-prd-infra-shared-01" },
+                                            { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
+                                            { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
+                                        ]
+                                    }
+                                },
+                                kubeEtcd: { enabled: false },
+                                kubeScheduler: { enabled: false },
+                                kubeProxy: { enabled: false },
+                                kubeStateMetrics: { enabled: true },
+                                "kube-state-metrics": {
+                                    fullnameOverride: "kube-state-metrics",
+                                    image: {
+                                        repository: "gcr-io/kube-state-metrics",
+                                        tag: "v2.15.0"
+                                    },
+                                    customLabels: podlabels,
+                                    metricLabelsAllowlist: ["nodes=[*]"],
+                                    resources: {
+                                        limits: { cpu: "100m", memory: "128Mi" },
+                                        requests: { cpu: "100m", memory: "128Mi" }
+                                    },
+                                    prometheus: {
+                                        monitor: {
+                                            enabled: true,
+                                            relabelings: [
+                                                { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
+                                                { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
+                                                { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
+                                                { sourceLabels: ["__meta_kubernetes_pod_label_project"], targetLabel: "project" },
+                                                { sourceLabels: ["__meta_kubernetes_pod_label_group"], targetLabel: "group" },
+                                                { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
+                                                { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
+                                            ]
+                                        }
+                                    }
+                                },
+                                nodeExporter: { enabled: true },
+                                "prometheus-node-exporter": {
+                                    fullnameOverride: "node-exporter",
+                                    image: {
+                                        registry: "swr.cn-east-3.myhuaweicloud.com",
+                                        repository: "quay-io/node-exporter",
+                                        tag: "v1.9.0"
+                                    },
+                                    resources: {
+                                        limits: { cpu: "50m", memory: "32Mi" },
+                                        requests: { cpu: "50m", memory: "32Mi" }
+                                    },
+                                    extraArgs: [
+                                        "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)",
+                                        "--collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$",
+                                        "--collector.cpu.info"
+                                    ],
+                                    containerSecurityContext: {
+                                        readOnlyRootFilesystem: true,
+                                        allowPrivilegeEscalation: false,
+                                        seccompProfile: { type: "RuntimeDefault" },
+                                        capabilities: { drop: ["ALL"] }
+                                    },
+                                    podLabels: podlabels,
+                                    tolerations: [],
+                                    prometheus: {
+                                        monitor: {
+                                            enabled: true,
+                                            relabelings: [
+                                                { sourceLabels: ["__meta_kubernetes_pod_node_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
+                                                { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
+                                                { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
+                                                { sourceLabels: ["__meta_kubernetes_pod_label_project"], targetLabel: "project" },
+                                                { sourceLabels: ["__meta_kubernetes_pod_label_group"], targetLabel: "group" },
+                                                { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
+                                                { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
+                                            ],
+                                        }
+                                    }
+                                },
+                                prometheusOperator: {
+                                    enabled: true,
+                                    admissionWebhooks: {
+                                        enabled: true,
+                                        image: {
+                                            repository: "quay-io/admission-webhook",
+                                            tag: "v0.81.0"
+                                        },
+                                        patch: {
+                                            enabled: true,
+                                            image: {
+                                                repository: "gcr-io/kube-webhook-certgen",
+                                                tag: "v1.5.2"
+                                            }
+                                        }
+                                    },
+                                    podLabels: podlabels,
+                                    logLevel: "info",
+                                    serviceMonitor: {
+                                        relabelings: [
+                                            { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
+                                            { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
+                                            { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
+                                            { sourceLabels: ["__meta_kubernetes_pod_label_project"], targetLabel: "project" },
+                                            { sourceLabels: ["__meta_kubernetes_pod_label_group"], targetLabel: "group" },
+                                            { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
+                                            { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
+                                        ]
+                                    },
+                                    resources: {
+                                        limits: { cpu: "100m", memory: "128Mi" },
+                                        requests: { cpu: "100m", memory: "128Mi" }
+                                    },
+                                    image: {
+                                        repository: "quay-io/prometheus-operator",
+                                        tag: "v0.81.0"
+                                    },
+                                    prometheusConfigReloader: {
+                                        image: {
+                                            repository: "quay-io/prometheus-config-reloader",
+                                            tag: "v0.81.0"
+                                        },
+                                        resources: {
+                                            limits: { cpu: "200m", memory: "64Mi" },
+                                            requests: { cpu: "200m", memory: "64Mi" }
+                                        }
+                                    }
+                                },
+                                prometheus: {
+                                    enabled: true,
+                                    ingress: { enabled: false },
+                                    serviceMonitor: {
+                                        relabelings: [
+                                            { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
+                                            { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
+                                            { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
+                                            { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
+                                            { sourceLabels: ["__address__"], targetLabel: "group", replacement: "rke-it-prd-infra-shared-01" },
+                                            { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
+                                            { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
+                                        ]
+                                    },
+                                    prometheusSpec: {
+                                        scrapeInterval: "60s",
+                                        scrapeTimeout: "30s",
+                                        evaluationInterval: "60s",
+                                        image: {
+                                            repository: "quay-io/prometheus",
+                                            tag: "v3.2.1"
+                                        },
+                                        externalLabels: { cluster: "rke-it-prd-infra-shared-01" },
+                                        externalUrl: "https://prometheus.home.local",
+                                        ruleSelectorNilUsesHelmValues: false,
+                                        serviceMonitorSelectorNilUsesHelmValues: false,
+                                        podMonitorSelectorNilUsesHelmValues: false,
+                                        probeSelectorNilUsesHelmValues: false,
+                                        retention: "2h",
+                                        retentionSize: "4096MB",
+                                        tsdb: {
+                                            outOfOrderTimeWindow: "30m"
+                                        },
+                                        walCompression: false,
+                                        replicas: 1,
+                                        logLevel: "info",
+                                        remoteWrite: [
+                                            {
+                                                url: "http://mimir-distributor:8080/api/v1/push",
+                                                headers: {
+                                                    "X-Scope-OrgID": "anonymous"
+                                                }
+                                            }
+                                        ],
+                                        resources: {
+                                            limits: { cpu: "1000m", memory: "2048Mi" },
+                                            requests: { cpu: "1000m", memory: "2048Mi" }
+                                        },
+                                        storageSpec: {
+                                            volumeClaimTemplate: {
+                                                spec: {
+                                                    storageClassName: "vsphere-san-sc",
+                                                    resources: {
+                                                        requests: {
+                                                            storage: "7Gi"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        additionalAlertRelabelConfigs: [
+                                            {
+                                                regex: "prometheus|cluster",
+                                                action: "labeldrop"
+                                            }
+                                        ],
+                                        additionalConfig: {
+                                            otlp: {
+                                                keepIdentifyingResourceAttributes: true,
+                                                translationStrategy: "NoUTF8EscapingWithSuffixes",
+                                                promoteResourceAttributes: [
+                                                    "service.instance.id",
+                                                    "service.name",
+                                                    "service.namespace",
+                                                    "deployment.environment.name",
+                                                    "service.version",
+                                                    "cloud.availability_zone",
+                                                    "cloud.region",
+                                                    "container.name",
+                                                    "deployment.environment",
+                                                    "k8s.cluster.name",
+                                                    "k8s.container.name",
+                                                    "k8s.cronjob.name",
+                                                    "k8s.daemonset.name",
+                                                    "k8s.deployment.name",
+                                                    "k8s.job.name",
+                                                    "k8s.namespace.name",
+                                                    "k8s.pod.name",
+                                                    "k8s.replicaset.name",
+                                                    "k8s.statefulset.name"
+                                                ]
                                             }
                                         }
                                     }
                                 }
-                            },
-                            externalUrl: "https://alertmanager-lgtm.home.local",
-                            resources: {
-                                limits: { cpu: "100m", memory: "64Mi" },
-                                requests: { cpu: "100m", memory: "64Mi" }
-                            },
-                            volumes: [
-                                {
-                                    name: "cst-timezone",
-                                    hostPath: {
-                                        path: "/usr/share/zoneinfo/PRC",
-                                        type: "File"
-                                    }
-                                }
-                            ],
-                            volumeMounts: [
-                                {
-                                    name: "cst-timezone",
-                                    mountPath: "/etc/localtime",
-                                    readOnly: true
-                                }
-                            ]
-                        }
-                    },
-                    grafana: { enabled: false },
-                    kubeApiServer: {
-                        enabled: true,
-                        serviceMonitor: {
-                            relabelings: [
-                                { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
-                                { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
-                                { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
-                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "rke-it-prd-infra-shared-01" },
-                                { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
-                                { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
-                            ]
-                        }
-                    },
-                    kubelet: {
-                        enabled: true,
-                        serviceMonitor: {
-                            probes: true,
-                            cAdvisorRelabelings: [
-                                { sourceLabels: ["__metrics_path__"], targetLabel: "metrics_path" },
-                                { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
-                                { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
-                                { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
-                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "rke-it-prd-infra-shared-01" },
-                                { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
-                                { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
-                            ],
-                            relabelings: [
-                                { sourceLabels: ["__metrics_path__"], targetLabel: "metrics_path" },
-                                { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
-                                { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
-                                { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
-                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "rke-it-prd-infra-shared-01" },
-                                { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
-                                { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
-                            ]
-                        }
-                    },
-                    kubeControllerManager: { enabled: false },
-                    coreDns: {
-                        enabled: true,
-                        serviceMonitor: {
-                            relabelings: [
-                                { sourceLabels: ["__metrics_path__"], targetLabel: "metrics_path" },
-                                { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
-                                { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
-                                { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
-                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "rke-it-prd-infra-shared-01" },
-                                { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
-                                { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
-                            ]
-                        }
-                    },
-                    kubeEtcd: { enabled: false },
-                    kubeScheduler: { enabled: false },
-                    kubeProxy: { enabled: false },
-                    kubeStateMetrics: { enabled: true },
-                    "kube-state-metrics": {
-                        fullnameOverride: "kube-state-metrics",
-                        image: {
-                            repository: "gcr-io/kube-state-metrics",
-                            tag: "v2.15.0"
-                        },
-                        customLabels: podlabels,
-                        metricLabelsAllowlist: ["nodes=[*]"],
-                        resources: {
-                            limits: { cpu: "100m", memory: "128Mi" },
-                            requests: { cpu: "100m", memory: "128Mi" }
-                        },
-                        prometheus: {
-                            monitor: {
-                                enabled: true,
-                                relabelings: [
-                                    { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
-                                    { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
-                                    { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
-                                    { sourceLabels: ["__meta_kubernetes_pod_label_project"], targetLabel: "project" },
-                                    { sourceLabels: ["__meta_kubernetes_pod_label_group"], targetLabel: "group" },
-                                    { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
-                                    { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
-                                ]
-                            }
-                        }
-                    },
-                    nodeExporter: { enabled: true },
-                    "prometheus-node-exporter": {
-                        fullnameOverride: "node-exporter",
-                        image: {
-                            registry: "swr.cn-east-3.myhuaweicloud.com",
-                            repository: "quay-io/node-exporter",
-                            tag: "v1.9.0"
-                        },
-                        resources: {
-                            limits: { cpu: "50m", memory: "32Mi" },
-                            requests: { cpu: "50m", memory: "32Mi" }
-                        },
-                        extraArgs: [
-                            "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)",
-                            "--collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$",
-                            "--collector.cpu.info"
-                        ],
-                        containerSecurityContext: {
-                            readOnlyRootFilesystem: true,
-                            allowPrivilegeEscalation: false,
-                            seccompProfile: { type: "RuntimeDefault" },
-                            capabilities: { drop: ["ALL"] }
-                        },
-                        podLabels: podlabels,
-                        tolerations: [],
-                        prometheus: {
-                            monitor: {
-                                enabled: true,
-                                relabelings: [
-                                    { sourceLabels: ["__meta_kubernetes_pod_node_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
-                                    { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
-                                    { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
-                                    { sourceLabels: ["__meta_kubernetes_pod_label_project"], targetLabel: "project" },
-                                    { sourceLabels: ["__meta_kubernetes_pod_label_group"], targetLabel: "group" },
-                                    { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
-                                    { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
-                                ],
-                            }
-                        }
-                    },
-                    prometheusOperator: {
-                        enabled: true,
-                        admissionWebhooks: {
-                            enabled: true,
-                            image: {
-                                repository: "quay-io/admission-webhook",
-                                tag: "v0.81.0"
-                            },
-                            patch: {
-                                enabled: true,
-                                image: {
-                                    repository: "gcr-io/kube-webhook-certgen",
-                                    tag: "v1.5.2"
-                                }
                             }
                         },
-                        podLabels: podlabels,
-                        logLevel: "info",
-                        serviceMonitor: {
-                            relabelings: [
-                                { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
-                                { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
-                                { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
-                                { sourceLabels: ["__meta_kubernetes_pod_label_project"], targetLabel: "project" },
-                                { sourceLabels: ["__meta_kubernetes_pod_label_group"], targetLabel: "group" },
-                                { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
-                                { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
-                            ]
-                        },
-                        resources: {
-                            limits: { cpu: "100m", memory: "128Mi" },
-                            requests: { cpu: "100m", memory: "128Mi" }
-                        },
-                        image: {
-                            repository: "quay-io/prometheus-operator",
-                            tag: "v0.81.0"
-                        },
-                        prometheusConfigReloader: {
-                            image: {
-                                repository: "quay-io/prometheus-config-reloader",
-                                tag: "v0.81.0"
-                            },
-                            resources: {
-                                limits: { cpu: "200m", memory: "64Mi" },
-                                requests: { cpu: "200m", memory: "64Mi" }
-                            }
-                        }
-                    },
-                    prometheus: {
-                        enabled: true,
-                        ingress: { enabled: false },
-                        serviceMonitor: {
-                            relabelings: [
-                                { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
-                                { sourceLabels: ["__address__"], targetLabel: "customer", replacement: "it" },
-                                { sourceLabels: ["__address__"], targetLabel: "environment", replacement: "prd" },
-                                { sourceLabels: ["__address__"], targetLabel: "project", replacement: "container" },
-                                { sourceLabels: ["__address__"], targetLabel: "group", replacement: "rke-it-prd-infra-shared-01" },
-                                { sourceLabels: ["__address__"], targetLabel: "datacenter", replacement: "cn-north" },
-                                { sourceLabels: ["__address__"], targetLabel: "domain", replacement: "local" }
-                            ]
-                        },
-                        prometheusSpec: {
-                            scrapeInterval: "60s",
-                            scrapeTimeout: "30s",
-                            evaluationInterval: "60s",
-                            image: {
-                                repository: "quay-io/prometheus",
-                                tag: "v3.2.1"
-                            },
-                            externalLabels: { cluster: "rke-it-prd-infra-shared-01" },
-                            externalUrl: "https://prometheus.home.local",
-                            ruleSelectorNilUsesHelmValues: false,
-                            serviceMonitorSelectorNilUsesHelmValues: false,
-                            podMonitorSelectorNilUsesHelmValues: false,
-                            probeSelectorNilUsesHelmValues: false,
-                            retention: "2h",
-                            retentionSize: "4096MB",
-                            tsdb: {
-                                outOfOrderTimeWindow: "30m"
-                            },
-                            walCompression: false,
-                            replicas: 1,
-                            logLevel: "info",
-                            remoteWrite: [
-                                {
-                                    url: "http://mimir-distributor:8080/api/v1/push",
-                                    headers: {
-                                        "X-Scope-OrgID": "anonymous"
-                                    }
-                                }
-                            ],
-                            resources: {
-                                limits: { cpu: "1000m", memory: "2048Mi" },
-                                requests: { cpu: "1000m", memory: "2048Mi" }
-                            },
-                            storageSpec: {
-                                volumeClaimTemplate: {
-                                    spec: {
-                                        storageClassName: "vsphere-san-sc",
-                                        resources: {
-                                            requests: {
-                                                storage: "7Gi"
-                                            }
-                                        }
-                                    }
-                                }
-                            },
-                            additionalAlertRelabelConfigs: [
-                                {
-                                    regex: "prometheus|cluster",
-                                    action: "labeldrop"
-                                }
-                            ],
-                            additionalConfig: {
-                                otlp: {
-                                    keepIdentifyingResourceAttributes: true,
-                                    translationStrategy: "NoUTF8EscapingWithSuffixes",
-                                    promoteResourceAttributes: [
-                                        "service.instance.id",
-                                        "service.name",
-                                        "service.namespace",
-                                        "deployment.environment.name",
-                                        "service.version",
-                                        "cloud.availability_zone",
-                                        "cloud.region",
-                                        "container.name",
-                                        "deployment.environment",
-                                        "k8s.cluster.name",
-                                        "k8s.container.name",
-                                        "k8s.cronjob.name",
-                                        "k8s.daemonset.name",
-                                        "k8s.deployment.name",
-                                        "k8s.job.name",
-                                        "k8s.namespace.name",
-                                        "k8s.pod.name",
-                                        "k8s.replicaset.name",
-                                        "k8s.statefulset.name"
-                                    ]
-                                }
-                            }
-                        }
-                    }
-                }
-            },
- */           
+             */
             {
                 namespace: "monitoring",
                 name: "loki",
@@ -639,6 +639,7 @@ SOFTWARE.
                             grpc_server_max_send_msg_size: 524288000
                         },
                         limits_config: {
+                            allow_structured_metadata: true,
                             ingestion_burst_size_mb: 64,
                             ingestion_rate_mb: 32,
                             ingestion_rate_strategy: "global",
@@ -649,8 +650,8 @@ SOFTWARE.
                             max_line_size_truncate: true,
                             query_timeout: "300s",
                             reject_old_samples: true,
-                            reject_old_samples_max_age: "168h",
-                            retention_period: "168h",
+                            reject_old_samples_max_age: "120h",
+                            retention_period: "120h",
                             split_queries_by_interval: "15m",
                             volume_enabled: true
                         },
@@ -862,8 +863,8 @@ SOFTWARE.
                     ingester: {
                         replicas: 3,
                         resources: {
-                            limits: { cpu: "1000m", memory: "4096Mi" },
-                            requests: { cpu: "1000m", memory: "4096Mi" }
+                            limits: { cpu: "2000m", memory: "4096Mi" },
+                            requests: { cpu: "2000m", memory: "4096Mi" }
                         },
                         persistence: {
                             enabled: true,
@@ -908,7 +909,7 @@ SOFTWARE.
                         },
                         config: {
                             compaction: {
-                                block_retention: "168h",
+                                block_retention: "120h",
                                 compaction_cycle: "60s"
                             }
                         }
@@ -1191,7 +1192,7 @@ SOFTWARE.
                                 }
                             },
                             limits: {
-                                compactor_blocks_retention_period: "168h",
+                                compactor_blocks_retention_period: "120h",
                                 ingestion_burst_size: 2000000,
                                 ingestion_rate: 100000,
                                 max_global_series_per_user: 1000000,
@@ -1405,8 +1406,8 @@ SOFTWARE.
                                 endpoint: "http://mimir-distributor:8080/otlp",
                                 tls: { insecure: true }
                             },
-                            "otlphttp/traces": {
-                                endpoint: "http://tempo-distributor:4318",
+                            "otlp/traces": {
+                                endpoint: "http://tempo-distributor:4317",
                                 tls: { insecure: true }
                             },
                             "otlphttp/logs": {
@@ -1453,48 +1454,22 @@ SOFTWARE.
                                     address: "${env:MY_POD_IP}:8888"
                                 }
                             },
-                            "extensions": [
-                                "health_check"
-                            ],
-                            "pipelines": {
-                                "traces": {
-                                    "receivers": [
-                                        "otlp",
-                                        "jaeger",
-                                        "zipkin"
-                                    ],
-                                    "processors": [
-                                        "memory_limiter",
-                                        "batch"
-                                    ],
-                                    "exporters": [
-                                        "otlphttp/traces"
-                                    ]
+                            extensions: ["health_check"],
+                            pipelines: {
+                                traces: {
+                                    receivers: ["otlp", "jaeger", "zipkin"],
+                                    processors: ["memory_limiter", "batch"],
+                                    exporters: ["otlp/traces"]
                                 },
-                                "metrics": {
-                                    "receivers": [
-                                        "otlp",
-                                        "prometheus"
-                                    ],
-                                    "processors": [
-                                        "memory_limiter",
-                                        "batch"
-                                    ],
-                                    "exporters": [
-                                        "otlphttp/metrics"
-                                    ]
+                                metrics: {
+                                    receivers: ["otlp", "prometheus"],
+                                    processors: ["memory_limiter", "batch"],
+                                    exporters: ["otlphttp/metrics"]
                                 },
-                                "logs": {
-                                    "receivers": [
-                                        "otlp"
-                                    ],
-                                    "processors": [
-                                        "memory_limiter",
-                                        "batch"
-                                    ],
-                                    "exporters": [
-                                        "otlphttp/logs"
-                                    ]
+                                logs: {
+                                    receivers: ["otlp"],
+                                    processors: ["memory_limiter", "batch"],
+                                    exporters: ["otlphttp/logs"]
                                 }
                             }
                         }
@@ -1522,9 +1497,408 @@ SOFTWARE.
                         ]
                     }
                 }
-            }
+            },
+            {
+                namespace: "monitoring",
+                name: "cert-manager",
+                chart: "oci://harbor.home.local/helm-charts/cert-manager",
+                version: "1.4.13",
+                values: {
+                    global: {
+                        imageRegistry: "swr.cn-east-3.myhuaweicloud.com",
+                        security: {
+                            allowInsecureImages: true
+                        }
+                    },
+                    logLevel: 2,
+                    installCRDs: true,
+                    controller: {
+                        replicaCount: 1,
+                        image: {
+                            repository: "docker-io/cert-manager"
+                        },
+                        acmesolver: {
+                            image: {
+                                repository: "docker-io/acmesolver"
+                            }
+                        },
+                        resources: {
+                            limits: { cpu: "100m", memory: "128Mi" },
+                            requests: { cpu: "100m", memory: "128Mi" }
+                        },
+                        podLabels: podlabels,
+                    },
+                    webhook: {
+                        replicaCount: 1,
+                        image: {
+                            repository: "docker-io/cert-manager-webhook"
+                        },
+                        resources: {
+                            limits: { cpu: "100m", memory: "128Mi" },
+                            requests: { cpu: "100m", memory: "128Mi" }
+                        },
+                        podLabels: podlabels
+                    },
+                    cainjector: {
+                        replicaCount: 1,
+                        image: {
+                            repository: "docker-io/cainjector"
+                        },
+                        resources: {
+                            limits: { cpu: "200m", memory: "256Mi" },
+                            requests: { cpu: "200m", memory: "256Mi" }
+                        },
+                        podLabels: podlabels,
+                    },
+                    metrics: {
+                        enabled: false,
+                        serviceMonitor: {
+                            enabled: false,
+                            relabelings: [
+                                { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_project"], targetLabel: "project" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_group"], targetLabel: "group" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                namespace: "monitoring",
+                name: "opentelemetry-operator",
+                chart: "oci://harbor.home.local/helm-charts/opentelemetry-operator",
+                version: "0.84.2",
+                values: {
+                    "replicaCount": 1,
+                    "manager": {
+                        "image": {
+                            "repository": "registry.cn-shanghai.aliyuncs.com/goldenimage/opentelemetry-operator",
+                            "tag": "0.120.0"
+                        },
+                        "collectorImage": {
+                            "repository": "registry.cn-shanghai.aliyuncs.com/goldenimage/opentelemetry-collector-k8s",
+                            "tag": "0.120.0"
+                        },
+                        "opampBridgeImage": {
+                            "repository": "",
+                            "tag": ""
+                        },
+                        "targetAllocatorImage": {
+                            "repository": "",
+                            "tag": ""
+                        },
+                        "autoInstrumentationImage": {
+                            "java": {
+                                "repository": "registry.cn-shanghai.aliyuncs.com/goldenimage/autoinstrumentation-java",
+                                "tag": "1.26.0"
+                            },
+                            "nodejs": {
+                                "repository": "",
+                                "tag": ""
+                            },
+                            "python": {
+                                "repository": "",
+                                "tag": ""
+                            },
+                            "dotnet": {
+                                "repository": "",
+                                "tag": ""
+                            },
+                            "apacheHttpd": {
+                                "repository": "",
+                                "tag": ""
+                            },
+                            "go": {
+                                "repository": "",
+                                "tag": ""
+                            }
+                        },
+                        "resources": {},
+                        "env": {
+                            "ENABLE_WEBHOOKS": "true"
+                        },
+                        "serviceMonitor": {
+                            "enabled": false
+                        },
+                        "podLabels": {},
+                        "prometheusRule": {
+                            "enabled": false
+                        }
+                    },
+                    "kubeRBACProxy": {
+                        "enabled": true,
+                        "image": {
+                            "repository": "swr.cn-east-3.myhuaweicloud.com/gcr-io/kube-rbac-proxy",
+                            "tag": "v0.18.1"
+                        },
+                        "resources": {}
+                    },
+                    "testFramework": {
+                        "image": {
+                            "repository": "swr.cn-east-3.myhuaweicloud.com/docker-io/busybox",
+                            "tag": "1.36.1"
+                        }
+                    }
+                }
+            },
+            {
+                namespace: "monitoring",
+                name: "mariadb",
+                chart: "oci://harbor.home.local/helm-charts/mariadb",
+                version: "13.1.3",
+                values: {
+                    fullnameOverride: "mysql",
+                    image: {
+                        registry: "swr.cn-east-3.myhuaweicloud.com",
+                        repository: "docker-io/mariadb",
+                        tag: "10.11.5-debian-11-r49"
+                    },
+                    architecture: "standalone",
+                    auth: {
+                        rootPassword: config.require("rootPassword"),
+                        createDatabase: true,
+                        database: "spring-boot",
+                        username: "spring-boot",
+                        password: config.require("userPassword")
+                    },
+                    initdbScripts: {
+                        "my_init_script.sh": `
+#!/bin/bash
+mysql -uroot -p${config.require("rootPassword")} -e "use spring-boot;CREATE TABLE pet (name VARCHAR(20), owner VARCHAR(20), species VARCHAR(20), sex CHAR(1), birth DATE, death DATE);"
+mysql -uroot -p${config.require("rootPassword")} -e "use spring-boot;INSERT INTO pet VALUES ('Puffball','Diane','hamster','f','1999-03-30',NULL);"
+`
+                    },
+                    primary: {
+                        configuration: `
+[mysqld]
+skip-log-bin
+skip-name-resolve
+explicit_defaults_for_timestamp
+basedir=/opt/bitnami/mariadb
+plugin_dir=/opt/bitnami/mariadb/plugin
+port=3306
+socket=/opt/bitnami/mariadb/tmp/mysql.sock
+tmpdir=/opt/bitnami/mariadb/tmp
+max_allowed_packet=16M
+bind-address=0.0.0.0
+pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
+log-error=/opt/bitnami/mariadb/logs/mysqld.log
+character-set-server=UTF8
+collation-server=utf8_general_ci
+slow_query_log_file=/opt/bitnami/mariadb/logs/mysqld.log
+slow_query_log=0
+max_connections=100
+performance_schema_max_table_instances=256
+table_definition_cache=400
+table_open_cache=128
+innodb_buffer_pool_size=256M
+innodb_flush_log_at_trx_commit=2
+query_response_time_stats=1
+plugin_load_add=query_response_time
+
+[client]
+port=3306
+socket=/opt/bitnami/mariadb/tmp/mysql.sock
+default-character-set=UTF8
+plugin_dir=/opt/bitnami/mariadb/plugin
+
+[manager]
+port=3306
+socket=/opt/bitnami/mariadb/tmp/mysql.sock
+pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
+`,
+                        extraEnvVars: [
+                            { name: "MARIADB_COLLATE", value: "utf8mb4_unicode_ci" },
+                            { name: "MARIADB_CHARACTER_SET", value: "utf8mb4" }
+                        ],
+                        resources: {
+                            limits: { cpu: "250m", memory: "512Mi" },
+                            requests: { cpu: "250m", memory: "512Mi" }
+                        },
+                        persistence: {
+                            enabled: true,
+                            storageClass: "vsphere-san-sc",
+                            size: "7Gi"
+                        },
+                        podLabels: podlabels,
+                        podSecurityContext: {
+                            fsGroup: 1000700000
+                        },
+                        containerSecurityContext: {
+                            runAsUser: 1000700000
+                        },
+                    },
+                    volumePermissions: { enabled: false },
+                    metrics: {
+                        enabled: true,
+                        image: {
+                            registry: "swr.cn-east-3.myhuaweicloud.com",
+                            repository: "docker-io/mysqld-exporter",
+                            tag: "0.15.1-debian-12-r29"
+                        },
+                        extraArgs: {
+                            primary: [
+                                "--collect.auto_increment.columns",
+                                "--collect.binlog_size",
+                                "--collect.engine_innodb_status",
+                                "--collect.global_status",
+                                "--collect.global_variables",
+                                "--collect.info_schema.clientstats",
+                                "--collect.info_schema.innodb_metrics",
+                                "--collect.info_schema.innodb_cmp",
+                                "--collect.info_schema.innodb_cmpmem",
+                                "--collect.info_schema.processlist",
+                                "--collect.info_schema.query_response_time",
+                                "--collect.info_schema.tables",
+                                "--collect.info_schema.tablestats",
+                                "--collect.info_schema.schemastats",
+                                "--collect.info_schema.userstats",
+                                "--collect.perf_schema.eventsstatements",
+                                "--collect.perf_schema.eventswaits",
+                                "--collect.perf_schema.file_events",
+                                "--collect.perf_schema.file_instances",
+                                "--collect.perf_schema.indexiowaits",
+                                "--collect.perf_schema.tableiowaits",
+                                "--collect.perf_schema.tablelocks"
+                            ]
+                        },
+                        resources: {
+                            limits: { cpu: "100m", memory: "128Mi" },
+                            requests: { cpu: "100m", memory: "128Mi" }
+                        },
+                        livenessProbe: {
+                            enabled: true,
+                            initialDelaySeconds: 120,
+                            periodSeconds: 10,
+                            timeoutSeconds: 10,
+                            successThreshold: 1,
+                            failureThreshold: 3
+                        },
+                        readinessProbe: {
+                            enabled: true,
+                            initialDelaySeconds: 30,
+                            periodSeconds: 10,
+                            timeoutSeconds: 10,
+                            successThreshold: 1,
+                            failureThreshold: 3
+                        },
+                        serviceMonitor: {
+                            enabled: false,
+                            interval: "60s",
+                            relabelings: [
+                                { sourceLabels: ["__meta_kubernetes_pod_name"], separator: ";", regex: "^(.*)$", targetLabel: "instance", replacement: "$1", action: "replace" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_customer"], targetLabel: "customer" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_environment"], targetLabel: "environment" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_project"], targetLabel: "project" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_group"], targetLabel: "group" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_datacenter"], targetLabel: "datacenter" },
+                                { sourceLabels: ["__meta_kubernetes_pod_label_domain"], targetLabel: "domain" }
+                            ]
+                        },
+                        prometheusRule: {
+                            enabled: false,
+                            namespace: "",
+                            rules: []
+                        }
+                    }
+                }
+            },
         ],
         deployment: [
+            {
+                metadata: {
+                    labels: {
+                        app: "spring-boot"
+                    },
+                    name: "spring-boot",
+                    namespace: "monitoring"
+                },
+                spec: {
+                    replicas: 1,
+                    selector: {
+                        matchLabels: {
+                            app: "spring-boot"
+                        }
+                    },
+                    template: {
+                        metadata: {
+                            labels: {
+                                app: "spring-boot",
+                                customer: "it",
+                                environment: "prd",
+                                project: "container",
+                                group: "rke-it-prd-infra-shared-01",
+                                datacenter: "cn-north",
+                                domain: "local"
+                            },
+                            annotations: {
+                                "instrumentation.opentelemetry.io/inject-java": "true"
+                            }
+                        },
+                        spec: {
+                            containers: [
+                                {
+                                    image: "registry.cn-hangzhou.aliyuncs.com/goldstrike/spring-boot-kubernetes-mysql:4.2.0",
+                                    name: "spring-boot",
+                                    livenessProbe: {
+                                        failureThreshold: 10,
+                                        tcpSocket: {
+                                            port: 8778
+                                        },
+                                        initialDelaySeconds: 60,
+                                        periodSeconds: 10,
+                                        successThreshold: 1,
+                                        timeoutSeconds: 30
+                                    },
+                                    readinessProbe: {
+                                        failureThreshold: 3,
+                                        tcpSocket: {
+                                            port: 8778
+                                        },
+                                        initialDelaySeconds: 60,
+                                        periodSeconds: 10,
+                                        successThreshold: 1,
+                                        timeoutSeconds: 10
+                                    },
+                                    resources: {
+                                        limits: { cpu: "300m", memory: "512Mi" },
+                                        requests: { cpu: "300m", memory: "512Mi" }
+                                    },
+                                    ports: [
+                                        {
+                                            containerPort: 8080,
+                                            name: "http",
+                                            protocol: "TCP"
+                                        },
+                                        {
+                                            containerPort: 9779,
+                                            name: "prometheus",
+                                            protocol: "TCP"
+                                        },
+                                        {
+                                            containerPort: 8778,
+                                            name: "jolokia",
+                                            protocol: "TCP"
+                                        }
+                                    ],
+                                    env: [
+                                        { name: "SPRING_DATASOURCE_URL", value: "jdbc:mysql://mysql/spring-boot" },
+                                        { name: "SPRING_DATASOURCE_USERNAME", value: "spring-boot" },
+                                        { name: "SPRING_DATASOURCE_PASSWORD", value: config.require("userPassword") },
+                                        { name: "KUBERNETES_NAMESPACE", value: "spring-boot" },
+                                        { name: "HOSTNAME", value: "spring-boot-kubernetes-mysql" }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            /**
             {
                 metadata: {
                     name: "otel-lgtm-nodejs",
@@ -1566,6 +1940,8 @@ SOFTWARE.
                                         }
                                     ],
                                     env: [
+                                        { name: "OTEL_NODE_RESOURCE_DETECTORS", value: "env,host" },
+                                        { name: "OTEL_LOG_LEVEL", value: "info" },
                                         { name: "OTEL_SERVICE_NAME", value: "otel-lgtm-nodejs" },
                                         { name: "OTEL_SERVICE_VERSION", value: "0.1.0" },
                                         { name: "OTEL_RESOURCE_ATTRIBUTES", value: "environment=prd" },
@@ -1576,7 +1952,7 @@ SOFTWARE.
                                         tcpSocket: {
                                             port: 8080
                                         },
-                                        initialDelaySeconds: 60,
+                                        initialDelaySeconds: 30,
                                         periodSeconds: 10,
                                         successThreshold: 1,
                                         timeoutSeconds: 30
@@ -1586,7 +1962,7 @@ SOFTWARE.
                                         tcpSocket: {
                                             port: 8080
                                         },
-                                        initialDelaySeconds: 60,
+                                        initialDelaySeconds: 30,
                                         periodSeconds: 10,
                                         successThreshold: 1,
                                         timeoutSeconds: 10
@@ -1599,8 +1975,10 @@ SOFTWARE.
                     }
                 }
             }
+                 */
         ],
         service: [
+            /**
             {
                 metadata: {
                     labels: {
@@ -1623,6 +2001,29 @@ SOFTWARE.
                     ]
                 }
             }
+                 */
+            {
+                metadata: {
+                    labels: {
+                        app: "spring-boot"
+                    },
+                    name: "demo",
+                    namespace: "monitoring"
+                },
+                spec: {
+                    ports: [
+                        {
+                            name: "spring-boot",
+                            port: 8080,
+                            protocol: "TCP",
+                            targetPort: 8080,
+                        }
+                    ],
+                    selector: {
+                        app: "spring-boot",
+                    }
+                }
+            },
         ],
         customresource: [
             {
@@ -1675,6 +2076,7 @@ SOFTWARE.
                                     resolveGranularity: "service"
                                 }
                             ],
+                            /**
                             plugins: [
                                 {
                                     name: "opentelemetry",
@@ -1686,6 +2088,7 @@ SOFTWARE.
                                     }
                                 }
                             ]
+                                 */
                         }
                     ]
                 }
@@ -1717,6 +2120,7 @@ SOFTWARE.
                     ]
                 }
             },
+            /**
             {
                 apiVersion: "apisix.apache.org/v2",
                 kind: "ApisixRoute",
@@ -1741,6 +2145,99 @@ SOFTWARE.
                                 }
                             ],
                             plugins: [
+                                {
+                                    name: "opentelemetry",
+                                    enable: true,
+                                    config: {
+                                        sampler: {
+                                            name: "always_on"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            */
+            {
+                "apiVersion": "opentelemetry.io/v1alpha1",
+                "kind": "Instrumentation",
+                "metadata": {
+                    "name": "otel-instrumentation",
+                    namespace: "monitoring"
+                },
+                "spec": {
+                    "exporter": {
+                        "endpoint": "http://opentelemetry-collector:4318"
+                    },
+                    "propagators": [
+                        "tracecontext",
+                        "baggage"
+                    ],
+                    "sampler": {
+                        "type": "parentbased_traceidratio",
+                        "argument": "1"
+                    },
+                    "java": {
+                        "env": [
+                            {
+                                "name": "OTEL_INSTRUMENTATION_KAFKA_ENABLED",
+                                "value": "false"
+                            },
+                            {
+                                "name": "OTEL_INSTRUMENTATION_REDISCALA_ENABLED",
+                                "value": "false"
+                            },
+                            {
+                                "name": "OTEL_EXPORTER_OTLP_PROTOCOL",
+                                "value": "http/protobuf"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                apiVersion: "apisix.apache.org/v2",
+                kind: "ApisixRoute",
+                metadata: {
+                    name: "demo",
+                    namespace: "monitoring"
+                },
+                spec: {
+                    http: [
+                        {
+                            name: "root",
+                            match: {
+                                methods: ["GET", "HEAD"],
+                                hosts: ["otel-lgtm-nodejs.home.local"],
+                                paths: ["/*"]
+                            },
+                            backends: [
+                                {
+                                    serviceName: "demo",
+                                    servicePort: 8080,
+                                    resolveGranularity: "service"
+                                }
+                            ],
+                            plugins: [
+                                {
+                                    name: "limit-conn",
+                                    enable: true,
+                                    config: {
+                                        _meta: {
+                                            disable: false
+                                        },
+                                        allow_degradation: false,
+                                        burst: 5,
+                                        conn: 20,
+                                        default_conn_delay: 2,
+                                        key: "remote_addr",
+                                        key_type: "var",
+                                        only_use_default_delay: false,
+                                        rejected_code: 503
+                                    }
+                                },
                                 {
                                     name: "opentelemetry",
                                     enable: true,
