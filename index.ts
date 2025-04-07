@@ -1865,8 +1865,8 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
                                         timeoutSeconds: 10
                                     },
                                     resources: {
-                                        limits: { cpu: "300m", memory: "512Mi" },
-                                        requests: { cpu: "300m", memory: "512Mi" }
+                                        limits: { cpu: "2000m", memory: "512Mi" },
+                                        requests: { cpu: "2000m", memory: "512Mi" }
                                     },
                                     ports: [
                                         {
@@ -1889,8 +1889,8 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
                                         { name: "SPRING_DATASOURCE_URL", value: "jdbc:mysql://mysql/spring-boot" },
                                         { name: "SPRING_DATASOURCE_USERNAME", value: "spring-boot" },
                                         { name: "SPRING_DATASOURCE_PASSWORD", value: config.require("userPassword") },
-                                        { name: "KUBERNETES_NAMESPACE", value: "spring-boot" },
-                                        { name: "HOSTNAME", value: "spring-boot-kubernetes-mysql" }
+                                        { name: "HOSTNAME", value: "spring-boot-kubernetes-mysql" },
+                                        { name: "OTEL_SERVICE_NAME", value: "otel-lgtm" }
                                     ]
                                 }
                             ]
@@ -2192,6 +2192,18 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
                             {
                                 "name": "OTEL_EXPORTER_OTLP_PROTOCOL",
                                 "value": "http/protobuf"
+                            },
+                            {
+                                "name": "OTEL_JAVAAGENT_LOGGING",
+                                "value": "simple"
+                            },
+                            {
+                                "name": "OTEL_RESOURCE_ATTRIBUTES",
+                                "value": "environment=prd"
+                            },
+                            {
+                                "name": "OTEL_NODE_RESOURCE_DETECTORS",
+                                "value": "env,host,os,k8s"
                             }
                         ]
                     }
