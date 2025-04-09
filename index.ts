@@ -1415,6 +1415,18 @@ const resources = [
                                 tls: { insecure: true }
                             }
                         },
+                        processors: {
+                            filter: {
+                                spans: {
+                                    exclude: {
+                                        match_type: "regexp",
+                                        attributes: [
+                                            { key: "http.target", value: ".*/health" }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
                         receivers: {
                             jaeger: {
                                 protocols: {
@@ -1458,7 +1470,7 @@ const resources = [
                             pipelines: {
                                 traces: {
                                     receivers: ["otlp", "jaeger", "zipkin"],
-                                    processors: ["memory_limiter", "batch"],
+                                    processors: ["memory_limiter", "batch", "filter"],
                                     exporters: ["otlp/traces"]
                                 },
                                 metrics: {
@@ -1842,24 +1854,22 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
                         spec: {
                             containers: [
                                 {
-                                    image: "registry.cn-hangzhou.aliyuncs.com/goldstrike/spring-boot-kubernetes-mysql:4.2.0",
+                                    image: "registry.cn-hangzhou.aliyuncs.com/goldenimage/spring-boot-kubernetes-mysql:v6.0.0@sha256:7ef5527285c71701b53936fb5b0aee6154f6127224b6e0c0df976a0077e14d15",
                                     name: "spring-boot",
                                     livenessProbe: {
-                                        failureThreshold: 10,
-                                        tcpSocket: {
-                                            port: 8778
+                                        httpGet: {
+                                            path: "/api/v1/actuator/health",
+                                            port: 8080
                                         },
-                                        initialDelaySeconds: 60,
-                                        periodSeconds: 10,
-                                        successThreshold: 1,
-                                        timeoutSeconds: 30
+                                        initialDelaySeconds: 30,
+                                        periodSeconds: 5
                                     },
                                     readinessProbe: {
                                         failureThreshold: 3,
                                         tcpSocket: {
-                                            port: 8778
+                                            port: 8080
                                         },
-                                        initialDelaySeconds: 60,
+                                        initialDelaySeconds: 30,
                                         periodSeconds: 10,
                                         successThreshold: 1,
                                         timeoutSeconds: 10
@@ -1872,17 +1882,9 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
                                         {
                                             containerPort: 8080,
                                             name: "http",
-                                            protocol: "TCP"
-                                        },
-                                        {
-                                            containerPort: 9779,
-                                            name: "prometheus",
-                                            protocol: "TCP"
-                                        },
-                                        {
-                                            containerPort: 8778,
-                                            name: "jolokia",
-                                            protocol: "TCP"
+                                            protocol: "TCP",
+                                            targetPort: 8080,
+                                            nodePort: 31371
                                         }
                                     ],
                                     env: [
@@ -1890,7 +1892,7 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
                                         { name: "SPRING_DATASOURCE_USERNAME", value: "spring-boot" },
                                         { name: "SPRING_DATASOURCE_PASSWORD", value: config.require("userPassword") },
                                         { name: "HOSTNAME", value: "spring-boot-kubernetes-mysql" },
-                                        { name: "OTEL_SERVICE_NAME", value: "otel-lgtm" }
+                                        { name: "OTEL_SERVICE_NAME", value: "otel-lgtm" },
                                     ]
                                 }
                             ]
@@ -2200,15 +2202,13 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
                             {
                                 "name": "OTEL_RESOURCE_ATTRIBUTES",
                                 "value": "environment=prd"
-                            },
-                            {
-                                "name": "OTEL_NODE_RESOURCE_DETECTORS",
-                                "value": "env,host,os,k8s"
                             }
                         ]
                     }
                 }
+
             },
+
             {
                 apiVersion: "apisix.apache.org/v2",
                 kind: "ApisixRoute",
@@ -2271,6 +2271,6 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
 const namespace = new k8s.core.v1.Namespace('Namespace', { resources: resources })
 const configmap = new k8s.core.v1.ConfigMap('ConfigMap', { resources: resources }, { dependsOn: [namespace] });
 const release = new k8s.helm.v3.Release('Release', { resources: resources }, { dependsOn: [namespace] });
-const deployment = new k8s.apps.v1.Deployment('Deployment', { resources: resources }, { dependsOn: [release] });
+const deployment = new k8s.apps.v1.Deployment('Deployment', { resources: resources }, { dependsOn: [configmap] });
 const service = new k8s.core.v1.Service('Service', { resources: resources }, { dependsOn: [release] });
 const customresource = new k8s.apiextensions.CustomResource('CustomResource', { resources: resources }, { dependsOn: [release] });
