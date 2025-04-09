@@ -121,10 +121,34 @@ const resources = [
                 namespace: "monitoring",
                 name: "kube-prometheus-stack",
                 chart: "oci://harbor.home.local/helm-charts/kube-prometheus-stack",
-                version: "69.8.2",
+                version: "70.4.1",
                 values: {
                     fullnameOverride: "kubepromstack",
+                    crds: {
+                        enabled: true,
+                        upgradeJob: {
+                            enabled: true,
+                            forceConflicts: true,
+                            image: {
+                                busybox: {
+                                    repository: "docker-io/busybox",
+                                    tag: "1.36.1"
+                                },
+                                kubectl: {
+                                    repository: "docker-io/kubectl",
+                                    tag: "1.31.3-debian-12-r1"
+                                }
+                            },
+                            resources: {
+                                limits: { cpu: "100m", memory: "64Mi" },
+                                requests: { cpu: "100m", memory: "64Mi" }
+                            }
+                        }
+                    },
                     defaultRules: { create: false },
+                    global: {
+                        imageRegistry: "swr.cn-east-3.myhuaweicloud.com"
+                    },
                     alertmanager: {
                         enabled: true,
                         config: {
@@ -368,9 +392,8 @@ SOFTWARE.
                         },
                         alertmanagerSpec: {
                             image: {
-                                registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/alertmanager",
-                                tag: "v0.27.0"
+                                tag: "v0.28.1"
                             },
                             logLevel: "info",
                             replicas: 1,
@@ -469,7 +492,6 @@ SOFTWARE.
                     "kube-state-metrics": {
                         fullnameOverride: "kube-state-metrics",
                         image: {
-                            registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "gcr-io/kube-state-metrics",
                             tag: "v2.15.0"
                         },
@@ -539,16 +561,14 @@ SOFTWARE.
                         admissionWebhooks: {
                             enabled: true,
                             image: {
-                                registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/admission-webhook",
-                                tag: "v0.80.1"
+                                tag: "v0.81.0"
                             },
                             patch: {
                                 enabled: true,
                                 image: {
-                                    registry: "swr.cn-east-3.myhuaweicloud.com",
                                     repository: "gcr-io/kube-webhook-certgen",
-                                    tag: "v1.5.1"
+                                    tag: "v1.5.2"
                                 }
                             }
                         },
@@ -570,15 +590,13 @@ SOFTWARE.
                             requests: { cpu: "100m", memory: "128Mi" }
                         },
                         image: {
-                            registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "quay-io/prometheus-operator",
-                            tag: "v0.80.1"
+                            tag: "v0.81.0"
                         },
                         prometheusConfigReloader: {
                             image: {
-                                registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/prometheus-config-reloader",
-                                tag: "v0.80.1"
+                                tag: "v0.81.0"
                             },
                             resources: {
                                 limits: { cpu: "200m", memory: "64Mi" },
@@ -601,12 +619,10 @@ SOFTWARE.
                             ]
                         },
                         prometheusSpec: {
-                            disableCompaction: true,
                             scrapeInterval: "60s",
                             scrapeTimeout: "30s",
                             evaluationInterval: "60s",
                             image: {
-                                registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/prometheus",
                                 tag: "v3.2.1"
                             },
@@ -618,6 +634,10 @@ SOFTWARE.
                             probeSelectorNilUsesHelmValues: false,
                             retention: "2h",
                             retentionSize: "4096MB",
+                            tsdb: {
+                                outOfOrderTimeWindow: "30m"
+                            },
+                            walCompression: false,
                             replicas: 1,
                             logLevel: "info",
                             remoteWrite: [
@@ -649,7 +669,34 @@ SOFTWARE.
                                     regex: "prometheus|cluster",
                                     action: "labeldrop"
                                 }
-                            ]
+                            ],
+                            additionalConfig: {
+                                otlp: {
+                                    keepIdentifyingResourceAttributes: true,
+                                    translationStrategy: "NoUTF8EscapingWithSuffixes",
+                                    promoteResourceAttributes: [
+                                        "service.instance.id",
+                                        "service.name",
+                                        "service.namespace",
+                                        "deployment.environment.name",
+                                        "service.version",
+                                        "cloud.availability_zone",
+                                        "cloud.region",
+                                        "container.name",
+                                        "deployment.environment",
+                                        "k8s.cluster.name",
+                                        "k8s.container.name",
+                                        "k8s.cronjob.name",
+                                        "k8s.daemonset.name",
+                                        "k8s.deployment.name",
+                                        "k8s.job.name",
+                                        "k8s.namespace.name",
+                                        "k8s.pod.name",
+                                        "k8s.replicaset.name",
+                                        "k8s.statefulset.name"
+                                    ]
+                                }
+                            }
                         }
                     }
                 }
