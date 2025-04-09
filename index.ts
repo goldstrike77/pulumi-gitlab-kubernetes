@@ -999,23 +999,23 @@ const resources = [
                 chart: "oci://harbor.home.local/helm-charts/opentelemetry-operator",
                 version: "0.84.2",
                 values: {
-                    "replicaCount": 1,
-                    "manager": {
-                        "image": {
-                            "repository": "registry.cn-shanghai.aliyuncs.com/goldenimage/opentelemetry-operator",
-                            "tag": "0.120.0"
+                    replicaCount: 1,
+                    manager: {
+                        image: {
+                            repository: "registry.cn-shanghai.aliyuncs.com/goldenimage/opentelemetry-operator",
+                            tag: "0.120.0"
                         },
-                        "collectorImage": {
-                            "repository": "registry.cn-shanghai.aliyuncs.com/goldenimage/opentelemetry-collector-k8s",
-                            "tag": "0.120.0"
+                        collectorImage: {
+                            repository: "registry.cn-shanghai.aliyuncs.com/goldenimage/opentelemetry-collector-k8s",
+                            tag: "0.120.0"
                         },
-                        "opampBridgeImage": {
-                            "repository": "",
-                            "tag": ""
+                        opampBridgeImage: {
+                            repository: "",
+                            tag: ""
                         },
-                        "targetAllocatorImage": {
-                            "repository": "",
-                            "tag": ""
+                        targetAllocatorImage: {
+                            repository: "",
+                            tag: ""
                         },
                         "autoInstrumentationImage": {
                             "java": {
@@ -1043,30 +1043,36 @@ const resources = [
                                 "tag": ""
                             }
                         },
-                        "resources": {},
-                        "env": {
-                            "ENABLE_WEBHOOKS": "true"
+                        resources: {
+                            limits: { cpu: "100m", memory: "128Mi" },
+                            requests: { cpu: "100m", memory: "128Mi" }
                         },
-                        "serviceMonitor": {
-                            "enabled": false
+                        env: {
+                            ENABLE_WEBHOOKS: "true"
                         },
-                        "podLabels": {},
-                        "prometheusRule": {
-                            "enabled": false
+                        serviceMonitor: {
+                            enabled: false
+                        },
+                        podLabels: podlabels,
+                        prometheusRule: {
+                            enabled: false
                         }
                     },
-                    "kubeRBACProxy": {
-                        "enabled": true,
-                        "image": {
+                    kubeRBACProxy: {
+                        enabled: true,
+                        image: {
                             "repository": "swr.cn-east-3.myhuaweicloud.com/gcr-io/kube-rbac-proxy",
                             "tag": "v0.18.1"
                         },
-                        "resources": {}
+                        resources: {
+                            limits: { cpu: "50m", memory: "64Mi" },
+                            requests: { cpu: "50m", memory: "64Mi" }
+                        },
                     },
-                    "testFramework": {
-                        "image": {
-                            "repository": "swr.cn-east-3.myhuaweicloud.com/docker-io/busybox",
-                            "tag": "1.36.1"
+                    testFramework: {
+                        image: {
+                            repository: "swr.cn-east-3.myhuaweicloud.com/docker-io/busybox",
+                            tag: "1.36.1"
                         }
                     }
                 }
