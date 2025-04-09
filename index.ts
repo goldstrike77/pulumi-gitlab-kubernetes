@@ -139,15 +139,15 @@ const resources = [
                     querier: {
                         replicas: 1,
                         resources: {
-                            limits: { cpu: "200m", memory: "512Mi" },
-                            requests: { cpu: "200m", memory: "512Mi" }
+                            limits: { cpu: "500m", memory: "512Mi" },
+                            requests: { cpu: "500m", memory: "512Mi" }
                         }
                     },
                     queryFrontend: {
                         replicas: 1,
                         resources: {
-                            limits: { cpu: "200m", memory: "256Mi" },
-                            requests: { cpu: "200m", memory: "256Mi" }
+                            limits: { cpu: "500m", memory: "512Mi" },
+                            requests: { cpu: "500m", memory: "512Mi" }
                         }
                     },
                     queryScheduler: {
