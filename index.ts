@@ -1468,6 +1468,10 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
                                 "value": "http/protobuf"
                             },
                             {
+                                "name": "OTEL_LOGS_EXPORTER",
+                                "value": "otlp"
+                            },
+                            {
                                 "name": "OTEL_JAVAAGENT_LOGGING",
                                 "value": "simple"
                             },
