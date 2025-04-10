@@ -1667,8 +1667,10 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
                                         default_conn_delay: 2,
                                         key: "remote_addr",
                                         key_type: "var",
+                                        policy: "redis",
+                                        redis_host: "redis-master.apisix",
                                         only_use_default_delay: false,
-                                        rejected_code: 503
+                                        rejected_code: 429
                                     }
                                 },
                                 {
