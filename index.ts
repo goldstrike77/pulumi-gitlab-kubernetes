@@ -277,8 +277,8 @@ const resources = [
                     ingester: {
                         replicas: 3,
                         resources: {
-                            limits: { cpu: "2000m", memory: "4096Mi" },
-                            requests: { cpu: "2000m", memory: "4096Mi" }
+                            limits: { cpu: "2000m", memory: "6144Mi" },
+                            requests: { cpu: "2000m", memory: "6144Mi" }
                         },
                         persistence: {
                             enabled: true,
@@ -311,8 +311,8 @@ const resources = [
                     distributor: {
                         replicas: 3,
                         resources: {
-                            limits: { cpu: "200m", memory: "2048Mi" },
-                            requests: { cpu: "200m", memory: "2048Mi" }
+                            limits: { cpu: "500m", memory: "2048Mi" },
+                            requests: { cpu: "500m", memory: "2048Mi" }
                         }
                     },
                     compactor: {
