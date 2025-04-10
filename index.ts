@@ -1023,8 +1023,8 @@ const resources = [
                                 "tag": "1.26.0"
                             },
                             "nodejs": {
-                                "repository": "",
-                                "tag": ""
+                                "repository": "registry.cn-shanghai.aliyuncs.com/goldenimage/autoinstrumentation-nodejs",
+                                "tag": "0.53.0"
                             },
                             "python": {
                                 "repository": "",
@@ -1238,7 +1238,7 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
                         }
                     }
                 }
-            },
+            }
         ],
         deployment: [
             {
@@ -1312,8 +1312,119 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
                                         { name: "SPRING_DATASOURCE_USERNAME", value: "spring-boot" },
                                         { name: "SPRING_DATASOURCE_PASSWORD", value: config.require("userPassword") },
                                         { name: "HOSTNAME", value: "spring-boot-kubernetes-mysql" },
-                                        { name: "OTEL_SERVICE_NAME", value: "otel-lgtm" },
+                                        { name: "OTEL_SERVICE_NAME", value: "spring-boot" },
                                     ]
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                metadata: {
+                    name: "nodejs-demo",
+                    namespace: "monitoring"
+                },
+                spec: {
+                    replicas: 1,
+                    selector: {
+                        matchLabels: {
+                            app: "nodejs-demo"
+                        }
+                    },
+                    template: {
+                        metadata: {
+                            labels: {
+                                app: "nodejs-demo",
+                                customer: "it",
+                                environment: "prd",
+                                project: "container",
+                                group: "rke-it-prd-infra-shared-01",
+                                datacenter: "cn-north",
+                                domain: "local"
+                            },
+                            annotations: {
+                                "instrumentation.opentelemetry.io/inject-nodejs": "true"
+                            }
+                        },
+                        spec: {
+                            containers: [
+                                {
+                                    name: "app",
+                                    image: "registry.cn-hangzhou.aliyuncs.com/goldenimage/nodejs-demo:v0.1@sha256:fc7bcb056f8c30cd3a6964f222d75009fce363cd6bcf70698f2b89d90c8f40b5",
+                                    resources: {
+                                        limits: { cpu: "1000m", memory: "1024Mi" },
+                                        requests: { cpu: "1000m", memory: "1024Mi" }
+                                    },
+                                    ports: [
+                                        {
+                                            "containerPort": 8080
+                                        }
+                                    ],
+                                    livenessProbe: {
+                                        failureThreshold: 10,
+                                        tcpSocket: {
+                                            port: 8080
+                                        },
+                                        initialDelaySeconds: 30,
+                                        periodSeconds: 10,
+                                        successThreshold: 1,
+                                        timeoutSeconds: 30
+                                    },
+                                    readinessProbe: {
+                                        failureThreshold: 3,
+                                        tcpSocket: {
+                                            port: 8080
+                                        },
+                                        initialDelaySeconds: 30,
+                                        periodSeconds: 10,
+                                        successThreshold: 1,
+                                        timeoutSeconds: 10
+                                    },
+                                    env: [
+                                        { name: "OTEL_SERVICE_NAME", value: "nodejs-demo" },
+                                        {
+                                            "name": "MY_NODE_NAME",
+                                            "valueFrom": {
+                                                "fieldRef": {
+                                                    "fieldPath": "spec.nodeName"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "name": "MY_POD_NAME",
+                                            "valueFrom": {
+                                                "fieldRef": {
+                                                    "fieldPath": "metadata.name"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "name": "MY_POD_NAMESPACE",
+                                            "valueFrom": {
+                                                "fieldRef": {
+                                                    "fieldPath": "metadata.namespace"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "name": "MY_POD_IP",
+                                            "valueFrom": {
+                                                "fieldRef": {
+                                                    "fieldPath": "status.podIP"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "name": "MY_POD_SERVICE_ACCOUNT",
+                                            "valueFrom": {
+                                                "fieldRef": {
+                                                    "fieldPath": "spec.serviceAccountName"
+                                                }
+                                            }
+                                        }
+                                    ],
+                                    imagePullPolicy: "IfNotPresent"
                                 }
                             ]
                         }
@@ -1327,7 +1438,7 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
                     labels: {
                         app: "spring-boot"
                     },
-                    name: "demo",
+                    name: "spring-boot",
                     namespace: "monitoring"
                 },
                 spec: {
@@ -1344,6 +1455,28 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
                     }
                 }
             },
+            {
+                metadata: {
+                    labels: {
+                        app: "nodejs-demo"
+                    },
+                    name: "nodejs-demo",
+                    namespace: "monitoring"
+                },
+                spec: {
+                    selector: {
+                        app: "nodejs-demo"
+                    },
+                    ports: [
+                        {
+                            name: "nodejs-demo",
+                            "port": 8080,
+                            protocol: "TCP",
+                            "targetPort": 8080
+                        }
+                    ]
+                }
+            }
         ],
         customresource: [
             {
@@ -1441,26 +1574,30 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
                 }
             },
             {
-                "apiVersion": "opentelemetry.io/v1alpha1",
-                "kind": "Instrumentation",
-                "metadata": {
-                    "name": "otel-instrumentation",
+                apiVersion: "opentelemetry.io/v1alpha1",
+                kind: "Instrumentation",
+                metadata: {
+                    name: "otel-instrumentation",
                     namespace: "monitoring"
                 },
-                "spec": {
-                    "exporter": {
-                        "endpoint": "http://opentelemetry-collector:4318"
-                    },
-                    "propagators": [
-                        "tracecontext",
-                        "baggage"
+                spec: {
+                    env: [
+                        { name: "OTEL_METRICS_EXPORTER", value: "otlp" },
+                        { name: "OTEL_TRACES_EXPORTER", value: "otlp" },
+                        { name: "OTEL_LOGS_EXPORTER", value: "otlp" },
+                        { name: "OTEL_LOG_LEVEL", value: "info" },
+                        { name: "OTEL_RESOURCE_ATTRIBUTES", value: "environment=prd" }
                     ],
-                    "sampler": {
-                        "type": "parentbased_traceidratio",
-                        "argument": "1"
+                    exporter: {
+                        endpoint: "http://opentelemetry-collector:4318"
                     },
-                    "java": {
-                        "env": [
+                    propagators: ["tracecontext", "baggage"],
+                    sampler: {
+                        type: "parentbased_traceidratio",
+                        argument: "1"
+                    },
+                    java: {
+                        env: [
                             {
                                 "name": "OTEL_INSTRUMENTATION_KAFKA_ENABLED",
                                 "value": "false"
@@ -1474,21 +1611,24 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
                                 "value": "http/protobuf"
                             },
                             {
-                                "name": "OTEL_LOGS_EXPORTER",
-                                "value": "otlp"
-                            },
-                            {
                                 "name": "OTEL_JAVAAGENT_LOGGING",
-                                "value": "simple"
+                                "value": "application"
+                            }
+                        ]
+                    },
+                    nodejs: {
+                        env: [
+                            {
+                                "name": "OTEL_EXPORTER_OTLP_PROTOCOL",
+                                "value": "http/protobuf"
                             },
                             {
-                                "name": "OTEL_RESOURCE_ATTRIBUTES",
-                                "value": "environment=prd"
+                                name: "OTEL_NODE_RESOURCE_DETECTORS",
+                                value: "env,host,os"
                             }
                         ]
                     }
                 }
-
             },
             {
                 apiVersion: "apisix.apache.org/v2",
@@ -1503,12 +1643,12 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
                             name: "root",
                             match: {
                                 methods: ["GET", "HEAD"],
-                                hosts: ["otel-lgtm-nodejs.home.local"],
+                                hosts: ["spring-boot.home.local"],
                                 paths: ["/*"]
                             },
                             backends: [
                                 {
-                                    serviceName: "demo",
+                                    serviceName: "spring-boot",
                                     servicePort: 8080,
                                     resolveGranularity: "service"
                                 }
@@ -1523,7 +1663,7 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
                                         },
                                         allow_degradation: false,
                                         burst: 5,
-                                        conn: 20,
+                                        conn: 200,
                                         default_conn_delay: 2,
                                         key: "remote_addr",
                                         key_type: "var",
@@ -1531,6 +1671,43 @@ pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
                                         rejected_code: 503
                                     }
                                 },
+                                {
+                                    name: "opentelemetry",
+                                    enable: true,
+                                    config: {
+                                        sampler: {
+                                            name: "always_on"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            {
+                apiVersion: "apisix.apache.org/v2",
+                kind: "ApisixRoute",
+                metadata: {
+                    name: "nodejs-demo",
+                    namespace: "monitoring"
+                },
+                spec: {
+                    http: [
+                        {
+                            name: "root",
+                            match: {
+                                hosts: ["nodejs-demo.home.local"],
+                                paths: ["/*"]
+                            },
+                            backends: [
+                                {
+                                    serviceName: "nodejs-demo",
+                                    servicePort: 8080,
+                                    resolveGranularity: "service"
+                                }
+                            ],
+                            plugins: [
                                 {
                                     name: "opentelemetry",
                                     enable: true,
