@@ -318,8 +318,8 @@ const resources = [
                     compactor: {
                         replicas: 1,
                         resources: {
-                            limits: { cpu: "2000m", memory: "4096Mi" },
-                            requests: { cpu: "2000m", memory: "4096Mi" }
+                            limits: { cpu: "2000m", memory: "6144Mi" },
+                            requests: { cpu: "2000m", memory: "6144Mi" }
                         },
                         config: {
                             compaction: {
