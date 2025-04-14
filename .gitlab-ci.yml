@@ -34,7 +34,7 @@ build:
     policy: pull-push
   script:
     - pulumi login 's3://state?endpoint=minio.home.local:80&disableSSL=true&s3ForcePathStyle=true'
-    - pulumi stack select k3s-it-prd-infra-shared-01/LGTM
+    - pulumi stack select rke-it-prd-infra-shared-01/LGTM
     - pulumi plugin install resource kubernetes v3.30.2 --server https://obs.home.local/mirror/pulumi/plugins
     - pulumi plugin install resource random v4.16.7 --server https://obs.home.local/mirror/pulumi/plugins
     - npm config set registry https://registry.npmmirror.com
