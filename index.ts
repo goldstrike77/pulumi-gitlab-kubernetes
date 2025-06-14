@@ -143,10 +143,13 @@ prefix: k3s-it-prd-infra-shared-01`)
                 namespace: "monitoring",
                 name: "kube-prometheus-stack",
                 chart: "oci://harbor.home.local/helm-charts/kube-prometheus-stack",
-                version: "69.8.2",
+                version: "73.2.3",
                 values: {
                     fullnameOverride: "kubepromstack",
                     defaultRules: { create: true },
+                    global: {
+                        imageRegistry: "swr.cn-east-3.myhuaweicloud.com"
+                    },
                     alertmanager: {
                         enabled: true,
                         config: {
@@ -394,7 +397,6 @@ SOFTWARE.
                         },
                         alertmanagerSpec: {
                             image: {
-                                registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/alertmanager",
                                 tag: "v0.28.1"
                             },
@@ -506,7 +508,6 @@ SOFTWARE.
                     "kube-state-metrics": {
                         fullnameOverride: "kube-state-metrics",
                         image: {
-                            registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "gcr-io/kube-state-metrics",
                             tag: "v2.15.0"
                         },
@@ -535,9 +536,8 @@ SOFTWARE.
                     "prometheus-node-exporter": {
                         fullnameOverride: "node-exporter",
                         image: {
-                            registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "quay-io/node-exporter",
-                            tag: "v1.9.0"
+                            tag: "v1.9.1"
                         },
                         resources: {
                             limits: { cpu: "50m", memory: "32Mi" },
@@ -576,16 +576,14 @@ SOFTWARE.
                         admissionWebhooks: {
                             enabled: true,
                             image: {
-                                registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/admission-webhook",
-                                tag: "v0.80.1"
+                                tag: "v0.82.2"
                             },
                             patch: {
                                 enabled: true,
                                 image: {
-                                    registry: "swr.cn-east-3.myhuaweicloud.com",
                                     repository: "gcr-io/kube-webhook-certgen",
-                                    tag: "v1.5.1"
+                                    tag: "v1.5.4"
                                 }
                             }
                         },
@@ -607,15 +605,13 @@ SOFTWARE.
                             requests: { cpu: "100m", memory: "128Mi" }
                         },
                         image: {
-                            registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "quay-io/prometheus-operator",
-                            tag: "v0.80.1"
+                            tag: "v0.82.2"
                         },
                         prometheusConfigReloader: {
                             image: {
-                                registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/prometheus-config-reloader",
-                                tag: "v0.80.1"
+                                tag: "v0.82.2"
                             },
                             resources: {
                                 limits: { cpu: "200m", memory: "64Mi" },
@@ -623,9 +619,8 @@ SOFTWARE.
                             }
                         },
                         thanosImage: {
-                            registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "quay-io/thanos",
-                            tag: "v0.37.2"
+                            tag: "v0.38.0"
                         }
                     },
                     prometheus: {
@@ -667,9 +662,8 @@ SOFTWARE.
                             scrapeTimeout: "30s",
                             evaluationInterval: "60s",
                             image: {
-                                registry: "swr.cn-east-3.myhuaweicloud.com",
                                 repository: "quay-io/prometheus",
-                                tag: "v3.2.1"
+                                tag: "v3.4.1"
                             },
                             externalLabels: { cluster: "k3s-it-prd-infra-shared-01" },
                             externalUrl: "https://prometheus.home.local",
@@ -814,18 +808,18 @@ SOFTWARE.
                 namespace: "monitoring",
                 name: "thanos",
                 chart: "oci://harbor.home.local/helm-charts/thanos",
-                version: "15.13.2",
+                version: "17.0.3",
                 values: {
                     global: {
+                        imageRegistry: "swr.cn-east-3.myhuaweicloud.com",
                         security: {
                             allowInsecureImages: true
                         }
                     },
                     image:
                     {
-                        registry: "swr.cn-east-3.myhuaweicloud.com",
                         repository: "docker-io/thanos",
-                        tag: "0.37.2-debian-12-r8"
+                        tag: "0.38.0-debian-12-r5"
                     },
                     existingObjstoreSecret: "configuration-secret",
                     query: {
@@ -1006,7 +1000,7 @@ config:
                 namespace: "monitoring",
                 name: "prometheus-blackbox-exporter",
                 chart: "oci://harbor.home.local/helm-charts/prometheus-blackbox-exporter",
-                version: "9.3.0",
+                version: "10.1.0",
                 values: {
                     fullnameOverride: "blackbox-exporter",
                     image: {
@@ -1096,18 +1090,18 @@ config:
                 namespace: "monitoring",
                 name: "redis",
                 chart: "oci://harbor.home.local/helm-charts/redis",
-                version: "20.11.3",
+                version: "21.2.3",
                 values: {
                     global: {
+                        imageRegistry: "swr.cn-east-3.myhuaweicloud.com",
                         security: {
                             allowInsecureImages: true
                         }
                     },
                     architecture: "standalone",
                     image: {
-                        registry: "swr.cn-east-3.myhuaweicloud.com",
                         repository: "docker-io/redis",
-                        tag: "7.4.2-debian-12-r4"
+                        tag: "8.0.2-debian-12-r3"
                     },
                     auth: { enabled: false, sentinel: false },
                     commonConfiguration: `appendonly no
@@ -1129,9 +1123,8 @@ save ""`,
                     metrics: {
                         enabled: true,
                         image: {
-                            registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "docker-io/redis-exporter",
-                            tag: "1.67.0-debian-12-r9"
+                            tag: "1.74.0-debian-12-r0"
                         },
                         resources: {
                             limits: { cpu: "100m", memory: "64Mi" },
@@ -1155,9 +1148,8 @@ save ""`,
                     sysctl: {
                         enabled: true,
                         image: {
-                            registry: "swr.cn-east-3.myhuaweicloud.com",
                             repository: "docker-io/os-shell",
-                            tag: "12-debian-12-r38"
+                            tag: "12-debian-12-r46"
                         },
                         resources: {
                             limits: { cpu: "100m", memory: "64Mi" },
